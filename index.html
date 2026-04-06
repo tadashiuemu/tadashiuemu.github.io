@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIおみくじアプリ</title>
+    <title>ビットコイン価格チェッカー</title>
     <style>
-        /* CSS：デザイン担当 */
         body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
-            background-color: #f4f7f6;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a1a; /* ダークモード風 */
+            color: #ffffff;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -16,86 +16,118 @@
             margin: 0;
         }
         .container {
-            background-color: #fff;
+            background-color: #2d2d2d;
             padding: 40px;
             border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
             text-align: center;
-            width: 300px;
+            width: 320px;
         }
         h1 {
-            color: #333;
-            font-size: 24px;
-            margin-bottom: 30px;
+            font-size: 18px;
+            color: #f3ba2f; /* ビットコインカラー */
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
-        #result {
-            font-size: 48px;
+        .price-box {
+            margin: 30px 0;
+        }
+        #price {
+            font-size: 36px;
             font-weight: bold;
-            color: #e74c3c;
-            margin: 20px 0;
-            min-height: 60px; /* 結果が出る前の高さを確保 */
+            color: #ffffff;
         }
-        #comment {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 30px;
-            min-height: 1.2em;
+        .unit {
+            font-size: 18px;
+            margin-left: 5px;
+        }
+        #last-update {
+            font-size: 12px;
+            color: #888;
+            margin-top: 20px;
         }
         button {
-            background-color: #3498db;
-            color: white;
+            background-color: #f3ba2f;
+            color: #1a1a1a;
             border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            border-radius: 30px;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s;
+            transition: all 0.3s;
+            margin-top: 10px;
         }
         button:hover {
-            background-color: #2980b9;
+            background-color: #ffcc4d;
+            transform: translateY(-2px);
         }
         button:active {
-            transform: scale(0.95);
+            transform: translateY(0);
+        }
+        .loading {
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>今日の運勢</h1>
-        <div id="result">？</div>
-        <p id="comment">ボタンを押して占ってね</p>
-        <button onclick="drawOmikuji()">おみくじを引く</button>
+        <h1>Bitcoin Price (BTC)</h1>
+        <div class="price-box">
+            <span id="price">取得中...</span><span class="unit">円</span>
+        </div>
+        <button onclick="fetchPrice()">価格を更新する</button>
+        <p id="last-update">データ取得中...</p>
     </div>
 
     <script>
-        function drawOmikuji() {
-            // おみくじの結果リスト
-            const fortunes = [
-                { result: '大吉', comment: '最高の一日！何をやってもうまくいきそう。' },
-                { result: '吉', comment: '良いことあるかも。コツコツ進むのが吉。' },
-                { result: '中吉', comment: '平凡こそ幸せ。落ち着いて過ごせそう。' },
-                { result: '小吉', comment: '小さなラッキーが見つかるかも。' },
-                { result: '末吉', comment: '焦らずゆっくり行きましょう。' },
-                { result: '凶', comment: '今日は無理せず、早めに休みましょう。' }
-            ];
+        async function fetchPrice() {
+            const priceElement = document.getElementById('price');
+            const updateElement = document.getElementById('last-update');
+            const button = document.querySelector('button');
 
-            // ランダムに１つ選ぶ（0〜5の乱数を作る）
-            const randomIndex = Math.floor(Math.random() * fortunes.length);
-            const selectedFortune = fortunes[randomIndex];
+            // ローディング中の表示
+            priceElement.classList.add('loading');
+            button.disabled = true;
+            button.textContent = '更新中...';
 
-            // 画面に反映させる
-            document.id('result').textContent = selectedFortune.result;
-            document.id('comment').textContent = selectedFortune.comment;
+            try {
+                // 教えていただいたAPIのURL
+                const url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=jpy';
+                
+                // データを取得 (fetch)
+                const response = await fetch(url);
+                const data = await response.json();
 
-            // ボタンの文字を変える
-            document.querySelector('button').textContent = 'もう一度引く';
+                // 取得したデータから価格を取り出す
+                const btcPrice = data.bitcoin.jpy;
+
+                // 3桁ごとにカンマを入れて表示
+                priceElement.textContent = btcPrice.toLocaleString();
+                
+                // 更新時刻を表示
+                const now = new Date();
+                updateElement.textContent = '最終更新: ' + now.toLocaleTimeString();
+
+            } catch (error) {
+                priceElement.textContent = 'エラー';
+                updateElement.textContent = 'データの取得に失敗しました';
+                console.error(error);
+            } finally {
+                // 表示を戻す
+                priceElement.classList.remove('loading');
+                button.disabled = false;
+                button.textContent = '価格を更新する';
+            }
         }
 
-        // document.id(id名) で要素を取得できるようにする便利なショートカット関数
-        document.id = function(id) {
-            return document.getElementById(id);
-        };
+        // ページを開いた時に一度実行する
+        fetchPrice();
+
+        // 60秒ごとに自動更新する設定
+        setInterval(fetchPrice, 60000);
     </script>
 </body>
 </html>
