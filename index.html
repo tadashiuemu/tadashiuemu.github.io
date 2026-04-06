@@ -3,131 +3,332 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ビットコイン価格チェッカー</title>
+    <title>AIからの脱出</title>
     <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --accent-color: #3498db;
+            --room-bg: #fff;
+        }
+
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #1a1a1a; /* ダークモード風 */
-            color: #ffffff;
+            font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
+            user-select: none; /* テキスト選択禁止（ゲームっぽく） */
         }
-        .container {
-            background-color: #2d2d2d;
+
+        .game-container {
+            background-color: var(--room-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 350px;
+        }
+
+        /* 部屋の画像（の代わりの文字エリア） */
+        #room-view {
+            background-color: #eee;
+            color: #555;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+        }
+
+        /* メッセージエリア */
+        #message-area {
+            font-size: 16px;
+            min-height: 2.4em; /* 2行分確保 */
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        /* アクションボタン（コマンド） */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* アイテム欄 */
+        .item-slot {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            border-top: 2px solid #eee;
+            padding-top: 15px;
+        }
+
+        .item {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            cursor: pointer;
+            color: #aaa;
+            background-color: #fafafa;
+        }
+
+        .item.owned {
+            color: #333;
+            border-color: var(--accent-color);
+            background-color: #e3f2fd;
+        }
+        
+        .item.owned.selected {
+            border-color: #e74c3c; /* 選択中は赤枠 */
+            box-shadow: 0 0 8px rgba(231, 76, 60, 0.5);
+        }
+
+        /* クリア画面 */
+        .game-clear {
+            display: none;
+            background-color: var(--room-bg);
             padding: 40px;
             border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
             text-align: center;
-            width: 320px;
         }
-        h1 {
-            font-size: 18px;
-            color: #f3ba2f; /* ビットコインカラー */
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .price-box {
-            margin: 30px 0;
-        }
-        #price {
-            font-size: 36px;
-            font-weight: bold;
-            color: #ffffff;
-        }
-        .unit {
-            font-size: 18px;
-            margin-left: 5px;
-        }
-        #last-update {
-            font-size: 12px;
-            color: #888;
-            margin-top: 20px;
-        }
-        button {
-            background-color: #f3ba2f;
-            color: #1a1a1a;
-            border: none;
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
-        }
-        button:hover {
-            background-color: #ffcc4d;
-            transform: translateY(-2px);
-        }
-        button:active {
-            transform: translateY(0);
-        }
-        .loading {
-            opacity: 0.5;
-        }
+        .game-clear h1 { color: #e74c3c; font-size: 32px; }
+
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Bitcoin Price (BTC)</h1>
-        <div class="price-box">
-            <span id="price">取得中...</span><span class="unit">円</span>
+    <div id="game-screen" class="game-container">
+        <div id="room-view">
+            [ここに部屋の文字アートが表示されます]
         </div>
-        <button onclick="fetchPrice()">価格を更新する</button>
-        <p id="last-update">データ取得中...</p>
+
+        <div id="message-area">
+            あなたは奇妙な部屋に閉じ込められた。
+        </div>
+
+        <div class="action-buttons">
+            <button id="btn-left" onclick="move('left')">左を見る</button>
+            <button id="btn-right" onclick="move('right')">右を見る</button>
+            <button id="btn-check" onclick="examine()">調べる</button>
+            <button id="btn-escape" onclick="escape()">脱出する</button>
+        </div>
+
+        <div class="item-slot">
+            <div id="item-key" class="item" onclick="selectItem('key')">カギ</div>
+            <div id="item-wire" class="item" onclick="selectItem('wire')">針金</div>
+        </div>
+    </div>
+
+    <div id="clear-screen" class="game-clear game-container">
+        <h1>脱出成功！</h1>
+        <p>あなたは無事に部屋から抜け出しました。</p>
+        <p>AIはあなたの知能を認めたようです。</p>
+        <button onclick="location.reload()">もう一度挑戦する</button>
     </div>
 
     <script>
-        async function fetchPrice() {
-            const priceElement = document.getElementById('price');
-            const updateElement = document.getElementById('last-update');
-            const button = document.querySelector('button');
+        // --- ゲームのデータと状態 ---
 
-            // ローディング中の表示
-            priceElement.classList.add('loading');
-            button.disabled = true;
-            button.textContent = '更新中...';
-
-            try {
-                // 教えていただいたAPIのURL
-                const url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=jpy';
-                
-                // データを取得 (fetch)
-                const response = await fetch(url);
-                const data = await response.json();
-
-                // 取得したデータから価格を取り出す
-                const btcPrice = data.bitcoin.jpy;
-
-                // 3桁ごとにカンマを入れて表示
-                priceElement.textContent = btcPrice.toLocaleString();
-                
-                // 更新時刻を表示
-                const now = new Date();
-                updateElement.textContent = '最終更新: ' + now.toLocaleTimeString();
-
-            } catch (error) {
-                priceElement.textContent = 'エラー';
-                updateElement.textContent = 'データの取得に失敗しました';
-                console.error(error);
-            } finally {
-                // 表示を戻す
-                priceElement.classList.remove('loading');
-                button.disabled = false;
-                button.textContent = '価格を更新する';
+        // 1. 部屋のデータ（画像、メッセージ、ここにあるアイテム）
+        const rooms = {
+            'center': {
+                view: `
+   [ ドア ]  
+  |       |  
+  |   □   | ←ドアノブ  
+  |_______|  
+                `,
+                message: '正面に頑丈そうなドアがある。<br>鍵がかかっているようだ。',
+                item: null
+            },
+            'left': {
+                view: `
+   [ 机 ]  
+  ___________  
+ |  [引き出し] |  
+ |___________|  
+   ||     ||  
+                `,
+                message: '古びた机がある。<br>引き出しには鍵がかかっている。',
+                item: 'key' // 調べると手に入るアイテム
+            },
+            'right': {
+                view: `
+   [ 窓 ]  
+  +-------+  
+  |  /|\\  |  
+  | / | \\ |  
+  +-------+  
+                `,
+                message: '高い位置に小さな窓がある。<br>床に何か落ちている。',
+                item: 'wire' // 調べると手に入るアイテム
             }
+        };
+
+        // 2. プレイヤーの状態（位置、持っているアイテム、選択中のアイテム）
+        const state = {
+            position: 'center', // 初期位置
+            items: [],          // 所持アイテム ['key', 'wire'] など
+            selectedItem: null  // 選択中のアイテムID
+        };
+
+        // --- ゲームの処理 (関数) ---
+
+        // 画面を更新する関数
+        function updateScreen() {
+            const room = rooms[state.position];
+            
+            // 部屋の見た目とメッセージを更新
+            document.id('room-view').innerHTML = `<pre>${room.view}</pre>`;
+            document.id('message-area').innerHTML = room.message;
+
+            // ボタンの表示/非表示（今の場所に応じて）
+            document.id('btn-left').style.display = (state.position === 'center' || state.position === 'right') ? 'block' : 'none';
+            document.id('btn-right').style.display = (state.position === 'center' || state.position === 'left') ? 'block' : 'none';
+            document.id('btn-escape').style.display = (state.position === 'center') ? 'block' : 'none';
+            
+            // アイテム欄の表示更新
+            updateItemDisplay();
         }
 
-        // ページを開いた時に一度実行する
-        fetchPrice();
+        // アイテム欄の見た目を更新する関数
+        function updateItemDisplay() {
+            ['key', 'wire'].forEach(id => {
+                const element = document.id(`item-${id}`);
+                // 持っているかチェック
+                if (state.items.includes(id)) {
+                    element.classList.add('owned');
+                } else {
+                    element.classList.remove('owned');
+                }
+                // 選択されているかチェック
+                if (state.selectedItem === id) {
+                    element.classList.add('selected');
+                } else {
+                    element.classList.remove('selected');
+                }
+            });
+        }
 
-        // 60秒ごとに自動更新する設定
-        setInterval(fetchPrice, 60000);
+        // --- アクション (onclickイベント) ---
+
+        // 移動する
+        function move(direction) {
+            if (direction === 'left') {
+                state.position = 'left';
+            } else if (direction === 'right') {
+                state.position = 'right';
+            }
+            state.selectedItem = null; // 移動したらアイテム選択を解除
+            updateScreen();
+        }
+
+        // 調べる
+        function examine() {
+            const room = rooms[state.position];
+            let message = '';
+
+            // 今の場所にアイテムがあり、まだ持っていない場合
+            if (room.item && !state.items.includes(room.item)) {
+                if (room.item === 'key') {
+                    message = '机の上の小さな鍵を見つけた。';
+                } else if (room.item === 'wire') {
+                    message = '床に落ちていた針金を拾った。';
+                }
+                state.items.push(room.item); // 所持アイテムに追加
+            } else {
+                // 特に何もない、またはすでに拾った後
+                if (state.position === 'center') message = '頑丈な鉄のドアだ。びくともしない。';
+                if (state.position === 'left') message = '引き出しは閉まっている。<br>鍵が必要だ。';
+                if (state.position === 'right') message = '窓は高すぎて届かない。';
+            }
+
+            document.id('message-area').innerHTML = message;
+            updateItemDisplay(); // アイテム欄を更新
+        }
+
+        // アイテムを選択する
+        function selectItem(itemId) {
+            // 持っていないアイテムは選択できない
+            if (!state.items.includes(itemId)) return;
+
+            // すでに選択中なら解除、そうでなければ選択
+            if (state.selectedItem === itemId) {
+                state.selectedItem = null;
+            } else {
+                state.selectedItem = itemId;
+            }
+            updateItemDisplay();
+        }
+
+        // 脱出する（ドアを調べる）
+        function escape() {
+            if (state.position !== 'center') return;
+
+            let message = '';
+
+            // ドアを開けるためのアイテムを持っているかチェック
+            if (state.selectedItem === 'key') {
+                // 正解！脱出成功
+                document.id('game-screen').style.display = 'none';
+                document.id('clear-screen').style.display = 'block';
+                return; // 処理を終了
+            } else if (state.selectedItem === 'wire') {
+                // 不正解
+                message = '針金で鍵穴をいじってみたが、<br>うまく開かない。';
+            } else {
+                // アイテムを選択していない
+                message = 'ドアノブを回したが、<br>鍵がかかっていて開かない。';
+            }
+
+            document.id('message-area').innerHTML = message;
+            state.selectedItem = null; // 選択を解除
+            updateItemDisplay();
+        }
+
+
+        // 便利なショートカット関数
+        document.id = function(id) {
+            return document.getElementById(id);
+        };
+
+        // ゲーム開始時に画面を初期化
+        updateScreen();
+
     </script>
 </body>
 </html>
