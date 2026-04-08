@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI音声文字起こし君</title>
+    <title>AI音声文字起こし君（消去ボタン付）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -49,38 +49,26 @@
             white-space: pre-wrap;
         }
         .buttons {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 10px;
-            justify-content: center;
         }
         button {
-            padding: 12px 24px;
-            font-size: 16px;
+            padding: 12px;
+            font-size: 14px;
             font-weight: bold;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
         }
-        #start-btn {
-            background-color: #34a853;
-            color: white;
-        }
-        #start-btn:disabled {
-            background-color: #ccc;
-        }
-        #stop-btn {
-            background-color: #ea4335;
-            color: white;
-        }
-        #copy-btn {
-            background-color: #1a73e8;
-            color: white;
-        }
-        button:hover:not(:disabled) {
-            opacity: 0.8;
-            transform: translateY(-1px);
-        }
+        #start-btn { background-color: #34a853; color: white; }
+        #stop-btn { background-color: #ea4335; color: white; }
+        #copy-btn { background-color: #1a73e8; color: white; }
+        #clear-btn { background-color: #808080; color: white; } /* 消去ボタンの色 */
+        
+        button:hover:not(:disabled) { opacity: 0.8; transform: translateY(-1px); }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -89,17 +77,17 @@
         <h1>音声文字起こしアプリ</h1>
         <p id="status">「開始」を押して話しかけてください</p>
         
-        <div id="result-area" id="result-text"></div>
+        <div id="result-area"></div>
 
         <div class="buttons">
             <button id="start-btn" onclick="startRecognition()">開始</button>
             <button id="stop-btn" onclick="stopRecognition()">停止</button>
             <button id="copy-btn" onclick="copyText()">コピー</button>
+            <button id="clear-btn" onclick="clearText()">全消去</button>
         </div>
     </div>
 
     <script>
-        // Web Speech APIの呼び出し
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         
         if (!SpeechRecognition) {
@@ -107,17 +95,16 @@
         }
 
         const recognition = new SpeechRecognition();
-        recognition.lang = 'ja-JP';      // 日本語に設定
-        recognition.interimResults = true; // 途中の経過も表示する
-        recognition.continuous = true;     // 連続して認識する
+        recognition.lang = 'ja-JP';
+        recognition.interimResults = true;
+        recognition.continuous = true;
 
         const resultArea = document.getElementById('result-area');
         const statusText = document.getElementById('status');
         const startBtn = document.getElementById('start-btn');
 
-        let finalTranscript = ''; // 確定した文章を保存する変数
+        let finalTranscript = '';
 
-        // 音声認識が結果を返した時
         recognition.onresult = (event) => {
             let interimTranscript = '';
             for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -128,13 +115,10 @@
                     interimTranscript = transcript;
                 }
             }
-            // 確定した部分と、今話している途中の部分を合わせて表示
             resultArea.innerText = finalTranscript + interimTranscript;
-            // 自動スクロール
             resultArea.scrollTop = resultArea.scrollHeight;
         };
 
-        // 録音開始
         function startRecognition() {
             recognition.start();
             statusText.innerText = "● 録音中...";
@@ -142,7 +126,6 @@
             startBtn.disabled = true;
         }
 
-        // 録音停止
         function stopRecognition() {
             recognition.stop();
             statusText.innerText = "停止しました";
@@ -150,15 +133,23 @@
             startBtn.disabled = false;
         }
 
-        // テキストをクリップボードにコピー
         function copyText() {
             const text = resultArea.innerText;
+            if(!text) return;
             navigator.clipboard.writeText(text).then(() => {
                 alert("テキストをコピーしました！");
             });
         }
 
-        // エラー処理
+        // --- 追加した消去機能 ---
+        function clearText() {
+            if (confirm("文字起こしした内容をすべて消去しますか？")) {
+                finalTranscript = ''; // 保存していた文章をリセット
+                resultArea.innerText = ''; // 画面の表示をリセット
+                statusText.innerText = "消去しました。開始を押すと新しく録音できます。";
+            }
+        }
+
         recognition.onerror = (event) => {
             console.error(event.error);
             statusText.innerText = "エラーが発生しました";
