@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser-Base Whisper Test</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #e0e0e0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: #1e1e1e; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 600px; text-align: center; }
+        h1 { color: #bb86fc; font-size: 1.5rem; margin-bottom: 1rem; }
+        #status { font-size: 0.9rem; color: #03dac6; margin-bottom: 1rem; height: 1.2rem; }
+        #output { background: #2c2c2c; padding: 1rem; border-radius: 0.5rem; height: 200px; overflow-y: auto; text-align: left; white-space: pre-wrap; margin-bottom: 1.5rem; border: 1px solid #333; line-height: 1.6; }
+        .controls { display: flex; gap: 10px; justify-content: center; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        #record-btn { background: #cf6679; color: white; }
+        #record-btn:disabled { background: #555; cursor: not-allowed; }
+        .loading-bar { height: 4px; background: #333; width: 100%; margin-bottom: 1rem; border-radius: 2px; overflow: hidden; }
+        #progress { height: 100%; background: #bb86fc; width: 0%; transition: width 0.3s; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>Whisper on Browser</h1>
+    <div id="status">AIモデルを準備しています... (初回は約75MB)</div>
+    <div class="loading-bar"><div id="progress"></div></div>
+    
+    <div id="output">マイクを許可して「録音開始」を押してください。
+あなたのブラウザ内でAIが直接解析します。</div>
+
+    <div class="controls">
+        <button id="record-btn" disabled>録音開始</button>
+    </div>
+</div>
+
+<script type="module">
+    // Transformers.jsを読み込む
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transfers@2.6.0';
+
+    const status = document.getElementById('status');
+    const output = document.getElementById('output');
+    const btn = document.getElementById('record-btn');
+    const progress = document.getElementById('progress');
+
+    let transcriber;
+    let recording = false;
+    let audioContext;
+    let stream;
+    let processor;
+    let audioChunks = [];
+
+    // AIモデルのロード
+    try {
+        transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+            progress_callback: (p) => {
+                if (p.status === 'progress') {
+                    progress.style.width = p.progress + '%';
+                    status.innerText = `モデル作成中: ${Math.round(p.progress)}%`;
+                }
+            }
+        });
+        status.innerText = '準備完了';
+        btn.disabled = false;
+    } catch (e) {
+        status.innerText = 'エラーが発生しました';
+        output.innerText = e;
+    }
+
+    btn.onclick = async () => {
+        if (!recording) {
+            // 録音開始
+            output.innerText = '聞路中...（話し終わったら停止を押してください）';
+            audioChunks = [];
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioContext = new AudioContext({ sampleRate: 16000 });
+            const source = audioContext.createMediaStreamSource(stream);
+            processor = audioContext.createScriptProcessor(4096, 1, 1);
+
+            source.connect(processor);
+            processor.connect(audioContext.destination);
+
+            processor.onaudioprocess = (e) => {
+                audioChunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+            };
+
+            btn.innerText = '停止して解析';
+            recording = true;
+        } else {
+            // 停止して解析
+            btn.disabled = true;
+            btn.innerText = '解析中...';
+            status.innerText = 'AIがブラウザで推論しています...';
+
+            processor.disconnect();
+            stream.getTracks().forEach(t => t.stop());
+
+            // 音声データの整形
+            const mergedArray = new Float32Array(audioChunks.length * 4096);
+            for (let i = 0; i < audioChunks.length; i++) {
+                mergedArray.set(audioChunks[i], i * 4096);
+            }
+
+            // AI推論実行
+            const start = performance.now();
+            const result = await transcriber(mergedArray, { language: 'japanese' });
+            const end = performance.now();
+
+            output.innerText = result.text;
+            status.innerText = `解析完了 (処理時間: ${((end - start) / 1000).toFixed(1)}秒)`;
+            btn.disabled = false;
+            btn.innerText = '録音開始';
+            recording = false;
+        }
+    };
+</script>
+</body>
+</html>
