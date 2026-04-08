@@ -3,97 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI音声文字起こし君（消去ボタン付）</title>
+    <title>AI音声文字起こし君（スピーカー対応版）</title>
     <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f0f2f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 500px;
-            text-align: center;
-        }
-        h1 {
-            color: #1a73e8;
-            font-size: 22px;
-            margin-bottom: 20px;
-        }
-        #status {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        #result-area {
-            width: 100%;
-            height: 200px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-size: 16px;
-            line-height: 1.6;
-            text-align: left;
-            overflow-y: auto;
-            background-color: #fafafa;
-            box-sizing: border-box;
-            white-space: pre-wrap;
-        }
-        .buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        button {
-            padding: 12px;
-            font-size: 14px;
-            font-weight: bold;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        #start-btn { background-color: #34a853; color: white; }
+        body { font-family: sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background-color: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 90%; max-width: 500px; text-align: center; }
+        h1 { color: #1a73e8; font-size: 22px; margin-bottom: 20px; }
+        #status { font-size: 14px; color: #666; margin-bottom: 10px; font-weight: bold; }
+        #result-area { width: 100%; height: 250px; border: 2px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 20px; font-size: 16px; line-height: 1.6; text-align: left; overflow-y: auto; background-color: #fafafa; box-sizing: border-box; white-space: pre-wrap; }
+        .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button { padding: 12px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        #start-mic { background-color: #34a853; color: white; }
+        #start-speaker { background-color: #fbbc05; color: white; }
         #stop-btn { background-color: #ea4335; color: white; }
-        #copy-btn { background-color: #1a73e8; color: white; }
-        #clear-btn { background-color: #808080; color: white; } /* 消去ボタンの色 */
-        
-        button:hover:not(:disabled) { opacity: 0.8; transform: translateY(-1px); }
+        #clear-btn { background-color: #808080; color: white; }
+        button:hover:not(:disabled) { opacity: 0.8; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .info-text { font-size: 11px; color: #888; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>音声文字起こしアプリ</h1>
-        <p id="status">「開始」を押して話しかけてください</p>
+        <div id="status">モードを選択してください</div>
         
         <div id="result-area"></div>
 
         <div class="buttons">
-            <button id="start-btn" onclick="startRecognition()">開始</button>
-            <button id="stop-btn" onclick="stopRecognition()">停止</button>
-            <button id="copy-btn" onclick="copyText()">コピー</button>
+            <button id="start-mic" onclick="startMic()">マイクで開始</button>
+            <button id="start-speaker" onclick="startSpeaker()">スピーカー音を開始</button>
+            <button id="stop-btn" onclick="stopRecognition()" disabled>停止</button>
             <button id="clear-btn" onclick="clearText()">全消去</button>
         </div>
+        <p class="info-text">※スピーカー音は「システムオーディオを共有」をオンにしてください</p>
     </div>
 
     <script>
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        
-        if (!SpeechRecognition) {
-            alert("お使いのブラウザは音声認識に対応していません。Chromeをお試しください。");
-        }
-
         const recognition = new SpeechRecognition();
         recognition.lang = 'ja-JP';
         recognition.interimResults = true;
@@ -101,9 +47,12 @@
 
         const resultArea = document.getElementById('result-area');
         const statusText = document.getElementById('status');
-        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const micBtn = document.getElementById('start-mic');
+        const spkBtn = document.getElementById('start-speaker');
 
         let finalTranscript = '';
+        let externalStream = null;
 
         recognition.onresult = (event) => {
             let interimTranscript = '';
@@ -119,42 +68,64 @@
             resultArea.scrollTop = resultArea.scrollHeight;
         };
 
-        function startRecognition() {
+        // マイク録音
+        async function startMic() {
+            resetButtons(true);
+            statusText.innerText = "● マイク録音中...";
             recognition.start();
-            statusText.innerText = "● 録音中...";
-            statusText.style.color = "#ea4335";
-            startBtn.disabled = true;
+        }
+
+        // スピーカー音録音（画面共有の音声を活用）
+        async function startSpeaker() {
+            try {
+                // ブラウザの画面共有機能を使って音を拾う
+                externalStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: true, // 映像は必須
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+
+                const audioTracks = externalStream.getAudioTracks();
+                if (audioTracks.length === 0) {
+                    alert("「システムオーディオを共有」にチェックを入れてください。");
+                    stopRecognition();
+                    return;
+                }
+
+                resetButtons(true);
+                statusText.innerText = "● スピーカー音を文字起こし中...";
+                recognition.start();
+
+            } catch (err) {
+                console.error(err);
+                statusText.innerText = "開始できませんでした";
+            }
         }
 
         function stopRecognition() {
             recognition.stop();
+            if (externalStream) {
+                externalStream.getTracks().forEach(track => track.stop());
+            }
             statusText.innerText = "停止しました";
-            statusText.style.color = "#666";
-            startBtn.disabled = false;
+            resetButtons(false);
         }
 
-        function copyText() {
-            const text = resultArea.innerText;
-            if(!text) return;
-            navigator.clipboard.writeText(text).then(() => {
-                alert("テキストをコピーしました！");
-            });
+        function resetButtons(isRunning) {
+            micBtn.disabled = isRunning;
+            spkBtn.disabled = isRunning;
+            stopBtn.disabled = !isRunning;
         }
 
-        // --- 追加した消去機能 ---
         function clearText() {
-            if (confirm("文字起こしした内容をすべて消去しますか？")) {
-                finalTranscript = ''; // 保存していた文章をリセット
-                resultArea.innerText = ''; // 画面の表示をリセット
-                statusText.innerText = "消去しました。開始を押すと新しく録音できます。";
+            if (confirm("すべて消去しますか？")) {
+                finalTranscript = '';
+                resultArea.innerText = '';
             }
         }
-
-        recognition.onerror = (event) => {
-            console.error(event.error);
-            statusText.innerText = "エラーが発生しました";
-            startBtn.disabled = false;
-        };
     </script>
 </body>
 </html>
