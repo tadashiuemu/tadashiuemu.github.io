@@ -3,332 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIからの脱出</title>
+    <title>AI音声文字起こし君</title>
     <style>
-        :root {
-            --bg-color: #f4f7f6;
-            --text-color: #333;
-            --accent-color: #3498db;
-            --room-bg: #fff;
-        }
-
         body {
-            font-family: 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            user-select: none; /* テキスト選択禁止（ゲームっぽく） */
         }
-
-        .game-container {
-            background-color: var(--room-bg);
+        .container {
+            background-color: white;
             padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
             text-align: center;
-            width: 350px;
         }
-
-        /* 部屋の画像（の代わりの文字エリア） */
-        #room-view {
-            background-color: #eee;
-            color: #555;
-            height: 150px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        h1 {
+            color: #1a73e8;
+            font-size: 22px;
+            margin-bottom: 20px;
+        }
+        #status {
             font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        #result-area {
+            width: 100%;
+            height: 200px;
+            border: 2px solid #e0e0e0;
             border-radius: 10px;
+            padding: 15px;
             margin-bottom: 20px;
-            border: 2px solid #ddd;
-        }
-
-        /* メッセージエリア */
-        #message-area {
             font-size: 16px;
-            min-height: 2.4em; /* 2行分確保 */
-            margin-bottom: 20px;
-            color: #555;
-        }
-
-        /* アクションボタン（コマンド） */
-        .action-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 12px;
-            font-size: 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        button:hover {
-            background-color: #2980b9;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        /* アイテム欄 */
-        .item-slot {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-            border-top: 2px solid #eee;
-            padding-top: 15px;
-        }
-
-        .item {
-            width: 50px;
-            height: 50px;
-            border: 2px solid #ccc;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 12px;
-            cursor: pointer;
-            color: #aaa;
+            line-height: 1.6;
+            text-align: left;
+            overflow-y: auto;
             background-color: #fafafa;
+            box-sizing: border-box;
+            white-space: pre-wrap;
         }
-
-        .item.owned {
-            color: #333;
-            border-color: var(--accent-color);
-            background-color: #e3f2fd;
+        .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
         }
-        
-        .item.owned.selected {
-            border-color: #e74c3c; /* 選択中は赤枠 */
-            box-shadow: 0 0 8px rgba(231, 76, 60, 0.5);
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-
-        /* クリア画面 */
-        .game-clear {
-            display: none;
-            background-color: var(--room-bg);
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
+        #start-btn {
+            background-color: #34a853;
+            color: white;
         }
-        .game-clear h1 { color: #e74c3c; font-size: 32px; }
-
+        #start-btn:disabled {
+            background-color: #ccc;
+        }
+        #stop-btn {
+            background-color: #ea4335;
+            color: white;
+        }
+        #copy-btn {
+            background-color: #1a73e8;
+            color: white;
+        }
+        button:hover:not(:disabled) {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
 
-    <div id="game-screen" class="game-container">
-        <div id="room-view">
-            [ここに部屋の文字アートが表示されます]
-        </div>
+    <div class="container">
+        <h1>音声文字起こしアプリ</h1>
+        <p id="status">「開始」を押して話しかけてください</p>
+        
+        <div id="result-area" id="result-text"></div>
 
-        <div id="message-area">
-            あなたは奇妙な部屋に閉じ込められた。
+        <div class="buttons">
+            <button id="start-btn" onclick="startRecognition()">開始</button>
+            <button id="stop-btn" onclick="stopRecognition()">停止</button>
+            <button id="copy-btn" onclick="copyText()">コピー</button>
         </div>
-
-        <div class="action-buttons">
-            <button id="btn-left" onclick="move('left')">左を見る</button>
-            <button id="btn-right" onclick="move('right')">右を見る</button>
-            <button id="btn-check" onclick="examine()">調べる</button>
-            <button id="btn-escape" onclick="escape()">脱出する</button>
-        </div>
-
-        <div class="item-slot">
-            <div id="item-key" class="item" onclick="selectItem('key')">カギ</div>
-            <div id="item-wire" class="item" onclick="selectItem('wire')">針金</div>
-        </div>
-    </div>
-
-    <div id="clear-screen" class="game-clear game-container">
-        <h1>脱出成功！</h1>
-        <p>あなたは無事に部屋から抜け出しました。</p>
-        <p>AIはあなたの知能を認めたようです。</p>
-        <button onclick="location.reload()">もう一度挑戦する</button>
     </div>
 
     <script>
-        // --- ゲームのデータと状態 ---
-
-        // 1. 部屋のデータ（画像、メッセージ、ここにあるアイテム）
-        const rooms = {
-            'center': {
-                view: `
-   [ ドア ]  
-  |       |  
-  |   □   | ←ドアノブ  
-  |_______|  
-                `,
-                message: '正面に頑丈そうなドアがある。<br>鍵がかかっているようだ。',
-                item: null
-            },
-            'left': {
-                view: `
-   [ 机 ]  
-  ___________  
- |  [引き出し] |  
- |___________|  
-   ||     ||  
-                `,
-                message: '古びた机がある。<br>引き出しには鍵がかかっている。',
-                item: 'key' // 調べると手に入るアイテム
-            },
-            'right': {
-                view: `
-   [ 窓 ]  
-  +-------+  
-  |  /|\\  |  
-  | / | \\ |  
-  +-------+  
-                `,
-                message: '高い位置に小さな窓がある。<br>床に何か落ちている。',
-                item: 'wire' // 調べると手に入るアイテム
-            }
-        };
-
-        // 2. プレイヤーの状態（位置、持っているアイテム、選択中のアイテム）
-        const state = {
-            position: 'center', // 初期位置
-            items: [],          // 所持アイテム ['key', 'wire'] など
-            selectedItem: null  // 選択中のアイテムID
-        };
-
-        // --- ゲームの処理 (関数) ---
-
-        // 画面を更新する関数
-        function updateScreen() {
-            const room = rooms[state.position];
-            
-            // 部屋の見た目とメッセージを更新
-            document.id('room-view').innerHTML = `<pre>${room.view}</pre>`;
-            document.id('message-area').innerHTML = room.message;
-
-            // ボタンの表示/非表示（今の場所に応じて）
-            document.id('btn-left').style.display = (state.position === 'center' || state.position === 'right') ? 'block' : 'none';
-            document.id('btn-right').style.display = (state.position === 'center' || state.position === 'left') ? 'block' : 'none';
-            document.id('btn-escape').style.display = (state.position === 'center') ? 'block' : 'none';
-            
-            // アイテム欄の表示更新
-            updateItemDisplay();
+        // Web Speech APIの呼び出し
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            alert("お使いのブラウザは音声認識に対応していません。Chromeをお試しください。");
         }
 
-        // アイテム欄の見た目を更新する関数
-        function updateItemDisplay() {
-            ['key', 'wire'].forEach(id => {
-                const element = document.id(`item-${id}`);
-                // 持っているかチェック
-                if (state.items.includes(id)) {
-                    element.classList.add('owned');
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ja-JP';      // 日本語に設定
+        recognition.interimResults = true; // 途中の経過も表示する
+        recognition.continuous = true;     // 連続して認識する
+
+        const resultArea = document.getElementById('result-area');
+        const statusText = document.getElementById('status');
+        const startBtn = document.getElementById('start-btn');
+
+        let finalTranscript = ''; // 確定した文章を保存する変数
+
+        // 音声認識が結果を返した時
+        recognition.onresult = (event) => {
+            let interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript + '\n';
                 } else {
-                    element.classList.remove('owned');
+                    interimTranscript = transcript;
                 }
-                // 選択されているかチェック
-                if (state.selectedItem === id) {
-                    element.classList.add('selected');
-                } else {
-                    element.classList.remove('selected');
-                }
+            }
+            // 確定した部分と、今話している途中の部分を合わせて表示
+            resultArea.innerText = finalTranscript + interimTranscript;
+            // 自動スクロール
+            resultArea.scrollTop = resultArea.scrollHeight;
+        };
+
+        // 録音開始
+        function startRecognition() {
+            recognition.start();
+            statusText.innerText = "● 録音中...";
+            statusText.style.color = "#ea4335";
+            startBtn.disabled = true;
+        }
+
+        // 録音停止
+        function stopRecognition() {
+            recognition.stop();
+            statusText.innerText = "停止しました";
+            statusText.style.color = "#666";
+            startBtn.disabled = false;
+        }
+
+        // テキストをクリップボードにコピー
+        function copyText() {
+            const text = resultArea.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("テキストをコピーしました！");
             });
         }
 
-        // --- アクション (onclickイベント) ---
-
-        // 移動する
-        function move(direction) {
-            if (direction === 'left') {
-                state.position = 'left';
-            } else if (direction === 'right') {
-                state.position = 'right';
-            }
-            state.selectedItem = null; // 移動したらアイテム選択を解除
-            updateScreen();
-        }
-
-        // 調べる
-        function examine() {
-            const room = rooms[state.position];
-            let message = '';
-
-            // 今の場所にアイテムがあり、まだ持っていない場合
-            if (room.item && !state.items.includes(room.item)) {
-                if (room.item === 'key') {
-                    message = '机の上の小さな鍵を見つけた。';
-                } else if (room.item === 'wire') {
-                    message = '床に落ちていた針金を拾った。';
-                }
-                state.items.push(room.item); // 所持アイテムに追加
-            } else {
-                // 特に何もない、またはすでに拾った後
-                if (state.position === 'center') message = '頑丈な鉄のドアだ。びくともしない。';
-                if (state.position === 'left') message = '引き出しは閉まっている。<br>鍵が必要だ。';
-                if (state.position === 'right') message = '窓は高すぎて届かない。';
-            }
-
-            document.id('message-area').innerHTML = message;
-            updateItemDisplay(); // アイテム欄を更新
-        }
-
-        // アイテムを選択する
-        function selectItem(itemId) {
-            // 持っていないアイテムは選択できない
-            if (!state.items.includes(itemId)) return;
-
-            // すでに選択中なら解除、そうでなければ選択
-            if (state.selectedItem === itemId) {
-                state.selectedItem = null;
-            } else {
-                state.selectedItem = itemId;
-            }
-            updateItemDisplay();
-        }
-
-        // 脱出する（ドアを調べる）
-        function escape() {
-            if (state.position !== 'center') return;
-
-            let message = '';
-
-            // ドアを開けるためのアイテムを持っているかチェック
-            if (state.selectedItem === 'key') {
-                // 正解！脱出成功
-                document.id('game-screen').style.display = 'none';
-                document.id('clear-screen').style.display = 'block';
-                return; // 処理を終了
-            } else if (state.selectedItem === 'wire') {
-                // 不正解
-                message = '針金で鍵穴をいじってみたが、<br>うまく開かない。';
-            } else {
-                // アイテムを選択していない
-                message = 'ドアノブを回したが、<br>鍵がかかっていて開かない。';
-            }
-
-            document.id('message-area').innerHTML = message;
-            state.selectedItem = null; // 選択を解除
-            updateItemDisplay();
-        }
-
-
-        // 便利なショートカット関数
-        document.id = function(id) {
-            return document.getElementById(id);
+        // エラー処理
+        recognition.onerror = (event) => {
+            console.error(event.error);
+            statusText.innerText = "エラーが発生しました";
+            startBtn.disabled = false;
         };
-
-        // ゲーム開始時に画面を初期化
-        updateScreen();
-
     </script>
 </body>
 </html>
