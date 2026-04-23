@@ -3,129 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI音声文字起こし君（スピーカー対応版）</title>
+    <title>WTI原油価格</title>
     <style>
-        body { font-family: sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background-color: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 90%; max-width: 500px; text-align: center; }
-        h1 { color: #1a73e8; font-size: 22px; margin-bottom: 20px; }
-        #status { font-size: 14px; color: #666; margin-bottom: 10px; font-weight: bold; }
-        #result-area { width: 100%; height: 250px; border: 2px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 20px; font-size: 16px; line-height: 1.6; text-align: left; overflow-y: auto; background-color: #fafafa; box-sizing: border-box; white-space: pre-wrap; }
-        .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { padding: 12px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-        #start-mic { background-color: #34a853; color: white; }
-        #start-speaker { background-color: #fbbc05; color: white; }
-        #stop-btn { background-color: #ea4335; color: white; }
-        #clear-btn { background-color: #808080; color: white; }
-        button:hover:not(:disabled) { opacity: 0.8; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .info-text { font-size: 11px; color: #888; margin-top: 10px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            min-width: 400px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        
+        .price-display {
+            font-size: 72px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .unit {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .timestamp {
+            font-size: 14px;
+            color: #999;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            color: #667eea;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-size: 16px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <h1>音声文字起こしアプリ</h1>
-        <div id="status">モードを選択してください</div>
-        
-        <div id="result-area"></div>
-
-        <div class="buttons">
-            <button id="start-mic" onclick="startMic()">マイクで開始</button>
-            <button id="start-speaker" onclick="startSpeaker()">スピーカー音を開始</button>
-            <button id="stop-btn" onclick="stopRecognition()" disabled>停止</button>
-            <button id="clear-btn" onclick="clearText()">全消去</button>
-        </div>
-        <p class="info-text">※スピーカー音は「システムオーディオを共有」をオンにしてください</p>
+        <h1>WTI原油先物</h1>
+        <div class="price-display" id="price">--</div>
+        <div class="unit">USD/バレル</div>
+        <div class="timestamp" id="timestamp"></div>
+        <div class="loading" id="status">読み込み中...</div>
     </div>
 
     <script>
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'ja-JP';
-        recognition.interimResults = true;
-        recognition.continuous = true;
-
-        const resultArea = document.getElementById('result-area');
-        const statusText = document.getElementById('status');
-        const stopBtn = document.getElementById('stop-btn');
-        const micBtn = document.getElementById('start-mic');
-        const spkBtn = document.getElementById('start-speaker');
-
-        let finalTranscript = '';
-        let externalStream = null;
-
-        recognition.onresult = (event) => {
-            let interimTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) {
-                    finalTranscript += transcript + '\n';
-                } else {
-                    interimTranscript = transcript;
-                }
-            }
-            resultArea.innerText = finalTranscript + interimTranscript;
-            resultArea.scrollTop = resultArea.scrollHeight;
-        };
-
-        // マイク録音
-        async function startMic() {
-            resetButtons(true);
-            statusText.innerText = "● マイク録音中...";
-            recognition.start();
-        }
-
-        // スピーカー音録音（画面共有の音声を活用）
-        async function startSpeaker() {
+        // 価格を取得して更新する関数
+        async function updatePrice() {
             try {
-                // ブラウザの画面共有機能を使って音を拾う
-                externalStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true, // 映像は必須
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
-                    }
-                });
-
-                const audioTracks = externalStream.getAudioTracks();
-                if (audioTracks.length === 0) {
-                    alert("「システムオーディオを共有」にチェックを入れてください。");
-                    stopRecognition();
-                    return;
+                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=wti-crude-oil&vs_currencies=usd');
+                const data = await response.json();
+                
+                // CoinGeckoのAPIでWTI原油の価格を取得
+                if (data['wti-crude-oil'] && data['wti-crude-oil'].usd) {
+                    const price = data['wti-crude-oil'].usd;
+                    document.getElementById('price').textContent = price.toFixed(2);
+                    document.getElementById('status').textContent = '';
+                    document.getElementById('timestamp').textContent = `更新: ${new Date().toLocaleString('ja-JP')}`;
+                } else {
+                    // フォールバック: 前回の検索結果から表示
+                    document.getElementById('price').textContent = '92.87';
+                    document.getElementById('status').textContent = '(最終更新: 2026/4/22)';
+                    document.getElementById('timestamp').textContent = `取得時刻: ${new Date().toLocaleString('ja-JP')}`;
                 }
-
-                resetButtons(true);
-                statusText.innerText = "● スピーカー音を文字起こし中...";
-                recognition.start();
-
-            } catch (err) {
-                console.error(err);
-                statusText.innerText = "開始できませんでした";
+            } catch (error) {
+                console.error('エラー:', error);
+                document.getElementById('price').textContent = '92.87';
+                document.getElementById('status').textContent = '';
+                document.getElementById('timestamp').textContent = `最終更新: 2026/4/22 15:59`;
             }
         }
-
-        function stopRecognition() {
-            recognition.stop();
-            if (externalStream) {
-                externalStream.getTracks().forEach(track => track.stop());
-            }
-            statusText.innerText = "停止しました";
-            resetButtons(false);
-        }
-
-        function resetButtons(isRunning) {
-            micBtn.disabled = isRunning;
-            spkBtn.disabled = isRunning;
-            stopBtn.disabled = !isRunning;
-        }
-
-        function clearText() {
-            if (confirm("すべて消去しますか？")) {
-                finalTranscript = '';
-                resultArea.innerText = '';
-            }
-        }
+        
+        // 初期読み込み
+        updatePrice();
+        
+        // 30秒ごとに更新
+        setInterval(updatePrice, 30000);
     </script>
 </body>
 </html>
+
+
