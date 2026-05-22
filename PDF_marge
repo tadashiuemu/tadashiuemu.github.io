@@ -1,0 +1,178 @@
+import express from "express";
+import cors from "cors";
+import multer from "multer";
+import path from "path";
+import os from "os";
+import fs from "fs/promises";
+import { existsSync } from "fs";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import { fileURLToPath, pathToFileURL } from "url";
+import { randomUUID } from "crypto";
+import { PDFDocument } from "pdf-lib";
+
+const execFileAsync = promisify(execFile);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.static(path.join(__dirname, "public")));
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024,
+    files: 30
+  }
+});
+
+const supportedExtensions = new Set([
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".ppt",
+  ".pptx",
+  ".odt",
+  ".ods",
+  ".odp",
+  ".rtf",
+  ".txt"
+]);
+
+function sanitizeOriginalName(name) {
+  return name
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 120);
+}
+
+async function convertToPdf(inputPath, outputDir, profileDir) {
+  const ext = path.extname(inputPath).toLowerCase();
+
+  if (ext === ".pdf") {
+    return inputPath;
+  }
+
+  const userInstallation = pathToFileURL(profileDir).href;
+
+  const args = [
+    "--headless",
+    "--nologo",
+    "--nofirststartwizard",
+    `-env:UserInstallation=${userInstallation}`,
+    "--convert-to",
+    "pdf",
+    "--outdir",
+    outputDir,
+    inputPath
+  ];
+
+  await execFileAsync("soffice", args, {
+    timeout: 120000,
+    maxBuffer: 1024 * 1024 * 10
+  });
+
+  const expectedPdfPath = path.join(
+    outputDir,
+    `${path.basename(inputPath, path.extname(inputPath))}.pdf`
+  );
+
+  if (!existsSync(expectedPdfPath)) {
+    throw new Error(`PDF変換に失敗しました: ${path.basename(inputPath)}`);
+  }
+
+  return expectedPdfPath;
+}
+
+async function mergePdfs(pdfPaths) {
+  const mergedPdf = await PDFDocument.create();
+
+  for (const pdfPath of pdfPaths) {
+    const pdfBytes = await fs.readFile(pdfPath);
+    const srcPdf = await PDFDocument.load(pdfBytes);
+    const pages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
+
+    for (const page of pages) {
+      mergedPdf.addPage(page);
+    }
+  }
+
+  return await mergedPdf.save();
+}
+
+app.post("/api/convert-merge", upload.array("documents"), async (req, res) => {
+  const workDir = path.join(os.tmpdir(), `doc-pdf-${randomUUID()}`);
+  const inputDir = path.join(workDir, "input");
+  const outputDir = path.join(workDir, "output");
+  const profileDir = path.join(workDir, "lo-profile");
+
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        message: "ファイルが選択されていません。"
+      });
+    }
+
+    await fs.mkdir(inputDir, { recursive: true });
+    await fs.mkdir(outputDir, { recursive: true });
+    await fs.mkdir(profileDir, { recursive: true });
+
+    const savedInputPaths = [];
+
+    for (const file of req.files) {
+      const originalName = sanitizeOriginalName(file.originalname);
+      const ext = path.extname(originalName).toLowerCase();
+
+      if (!supportedExtensions.has(ext)) {
+        throw new Error(`未対応のファイル形式です: ${file.originalname}`);
+      }
+
+      const saveName = `${randomUUID()}-${originalName}`;
+      const inputPath = path.join(inputDir, saveName);
+
+      await fs.writeFile(inputPath, file.buffer);
+      savedInputPaths.push(inputPath);
+    }
+
+    const pdfPaths = [];
+
+    for (const inputPath of savedInputPaths) {
+      const pdfPath = await convertToPdf(inputPath, outputDir, profileDir);
+      pdfPaths.push(pdfPath);
+    }
+
+    const mergedPdfBytes = await mergePdfs(pdfPaths);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="merged.pdf"'
+    );
+
+    res.send(Buffer.from(mergedPdfBytes));
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: error.message || "PDF作成中にエラーが発生しました。"
+    });
+  } finally {
+    setTimeout(async () => {
+      try {
+        await fs.rm(workDir, { recursive: true, force: true });
+      } catch {
+        // ignore
+      }
+    }, 5000);
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running: http://localhost:${PORT}`);
+});
