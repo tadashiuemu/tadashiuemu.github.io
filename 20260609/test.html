@@ -3,498 +3,865 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>夏の宴 - お品書き</title>
+  <title>夏の宴 - 動くお品書き</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;600&display=swap');
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background: linear-gradient(135deg, #f8f4e6 0%, #f2ede0 100%);
+      background: #0a0a0f;
       font-family: 'Noto Serif JP', serif;
-      padding: 30px 20px;
+      overflow-x: hidden;
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
     }
 
-    .menu-wrapper {
-      max-width: 580px;
-      width: 100%;
-      background: linear-gradient(160deg, #fdf8f0 0%, #f9f2e4 100%);
-      border-radius: 4px;
-      box-shadow:
-        0 25px 60px rgba(0,0,0,0.15),
-        0 0 0 1px rgba(184,134,11,0.3),
-        inset 0 0 80px rgba(255,255,255,0.4);
+    /* ========== Canvas背景（金の粒子アニメーション） ========== */
+    #bgCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ========== ローディング画面 ========== */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0a0a0f, #1a1408);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 0.8s ease;
+    }
+
+    .loading-kanji {
+      font-size: 80px;
+      color: #b8860b;
+      animation: loadingPulse 1.5s ease-in-out infinite;
+      text-shadow: 0 0 30px rgba(184,134,11,0.8);
+    }
+
+    .loading-bar-wrap {
+      width: 200px;
+      height: 2px;
+      background: rgba(184,134,11,0.2);
+      margin-top: 30px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loading-bar {
+      height: 100%;
+      background: linear-gradient(to right, #b8860b, #ffd700);
+      width: 0%;
+      animation: loadingBar 1.8s ease forwards;
+    }
+
+    @keyframes loadingPulse {
+      0%,100% { opacity: 0.4; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    @keyframes loadingBar {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+
+    /* ========== メインコンテナ ========== */
+    #main {
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      transition: opacity 1s ease;
+    }
+
+    #main.visible { opacity: 1; }
+
+    /* ========== ヒーローセクション ========== */
+    .hero {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      text-align: center;
+    }
+
+    .hero-season {
+      font-size: 12px;
+      letter-spacing: 8px;
+      color: #b8860b;
+      margin-bottom: 20px;
+      opacity: 0;
+      animation: fadeUp 1s ease 2.2s forwards;
+    }
+
+    .hero-title {
+      font-size: clamp(60px, 12vw, 120px);
+      font-weight: 300;
+      color: #fdf8f0;
+      letter-spacing: 20px;
+      text-indent: 20px;
+      line-height: 1;
+      opacity: 0;
+      animation: fadeUp 1s ease 2.4s forwards;
+      text-shadow: 0 0 60px rgba(184,134,11,0.3);
+      position: relative;
+    }
+
+    .hero-title::after {
+      content: '夏の宴';
+      position: absolute;
+      inset: 0;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(184,134,11,0.4);
+      animation: glowPulse 3s ease-in-out infinite;
+    }
+
+    .hero-sub {
+      font-size: 14px;
+      color: rgba(184,134,11,0.8);
+      letter-spacing: 4px;
+      margin-top: 20px;
+      opacity: 0;
+      animation: fadeUp 1s ease 2.6s forwards;
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      animation: fadeUp 1s ease 3.2s forwards;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .scroll-hint span {
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: rgba(184,134,11,0.6);
+    }
+
+    .scroll-arrow {
+      width: 20px;
+      height: 20px;
+      border-right: 1px solid rgba(184,134,11,0.6);
+      border-bottom: 1px solid rgba(184,134,11,0.6);
+      transform: rotate(45deg);
+      animation: scrollBounce 1.5s ease-in-out infinite;
+    }
+
+    @keyframes scrollBounce {
+      0%,100% { transform: rotate(45deg) translateY(0); opacity: 0.6; }
+      50% { transform: rotate(45deg) translateY(5px); opacity: 1; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes glowPulse {
+      0%,100% { opacity: 0.3; }
+      50% { opacity: 0.7; }
+    }
+
+    /* ========== メニューセクション ========== */
+    .menu-section {
+      padding: 60px 20px 100px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    .section-header h2 {
+      font-size: 13px;
+      letter-spacing: 8px;
+      color: #b8860b;
+      margin-bottom: 12px;
+    }
+
+    .section-header p {
+      font-size: 12px;
+      color: rgba(253,248,240,0.4);
+      letter-spacing: 3px;
+    }
+
+    /* ========== メニューカード ========== */
+    .menu-card {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 0;
+      margin-bottom: 2px;
+      background: rgba(253,248,240,0.03);
+      border: 1px solid rgba(184,134,11,0.15);
+      border-radius: 2px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateX(-30px);
+      transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .menu-card.in-view {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .menu-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0;
+      width: 3px;
+      height: 0%;
+      background: linear-gradient(to bottom, #b8860b, #ffd700);
+      transition: height 0.4s ease;
+    }
+
+    .menu-card:hover::before { height: 100%; }
+
+    .menu-card:hover {
+      background: rgba(184,134,11,0.06);
+      border-color: rgba(184,134,11,0.4);
+      transform: translateX(6px);
+    }
+
+    /* イラストエリア */
+    .card-canvas-wrap {
+      width: 110px;
+      height: 110px;
+      background: rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid rgba(184,134,11,0.15);
       position: relative;
       overflow: hidden;
     }
 
-    .menu-wrapper::before {
-      content: '';
+    .card-canvas-wrap canvas {
       position: absolute;
-      inset: 0;
-      background-image:
-        repeating-linear-gradient(
-          0deg,
-          transparent,
-          transparent 3px,
-          rgba(184,134,11,0.02) 3px,
-          rgba(184,134,11,0.02) 4px
-        );
-      pointer-events: none;
-      z-index: 0;
     }
 
-    /* 四隅の装飾 */
-    .corner { position: absolute; width: 50px; height: 50px; z-index: 2; }
-    .corner::before,
-    .corner::after {
-      content: '';
-      position: absolute;
-      background: #b8860b;
-    }
-    .corner::before { width: 100%; height: 2px; top: 0; }
-    .corner::after  { width: 2px; height: 100%; top: 0; }
-    .corner.tl { top: 18px; left: 18px; }
-    .corner.tr { top: 18px; right: 18px; transform: scaleX(-1); }
-    .corner.bl { bottom: 18px; left: 18px; transform: scaleY(-1); }
-    .corner.br { bottom: 18px; right: 18px; transform: scale(-1); }
-
-    .side-line {
-      position: absolute;
-      top: 80px;
-      bottom: 80px;
-      width: 1px;
-      background: linear-gradient(to bottom, transparent, rgba(184,134,11,0.3), transparent);
-      z-index: 1;
-    }
-    .side-line.left  { left: 10px; }
-    .side-line.right { right: 10px; }
-
-    .menu-content {
-      padding: 55px 45px;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* ヘッダー */
-    .header {
-      text-align: center;
-      margin-bottom: 35px;
-    }
-
-    .season-label {
-      display: inline-block;
-      font-size: 11px;
-      letter-spacing: 5px;
-      color: #b8860b;
-      border: 1px solid rgba(184,134,11,0.4);
-      padding: 4px 16px;
-      margin-bottom: 18px;
-    }
-
-    .main-title {
-      font-size: 40px;
-      font-weight: 300;
-      color: #1a0f00;
-      letter-spacing: 12px;
-      margin-bottom: 12px;
-      text-indent: 12px;
-    }
-
-    .subtitle {
-      font-size: 13px;
-      color: #8b7355;
-      letter-spacing: 3px;
-    }
-
-    .header-divider {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 22px 0;
-    }
-    .header-divider::before,
-    .header-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: linear-gradient(to right, transparent, #b8860b);
-    }
-    .header-divider::after {
-      background: linear-gradient(to left, transparent, #b8860b);
-    }
-    .header-divider span {
-      color: #b8860b;
-      font-size: 14px;
-    }
-
-    /* メニューリスト */
-    .menu-items {
+    /* テキストエリア */
+    .card-body {
+      padding: 20px 24px;
       display: flex;
       flex-direction: column;
-    }
-
-    .menu-item {
-      display: grid;
-      grid-template-columns: 90px 1fr;
-      gap: 20px;
-      align-items: center;
-      padding: 16px 10px;
-      border-bottom: 1px solid rgba(184,134,11,0.15);
-      transition: background 0.3s;
-    }
-
-    .menu-item:last-child {
-      border-bottom: none;
-    }
-
-    .menu-item:hover {
-      background: rgba(184,134,11,0.04);
-    }
-
-    .illust-circle {
-      width: 78px;
-      height: 78px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, #fff 0%, #f5efe0 100%);
-      border: 1.5px solid rgba(184,134,11,0.35);
-      display: flex;
-      align-items: center;
       justify-content: center;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.08), inset 0 1px 3px rgba(255,255,255,0.8);
-      flex-shrink: 0;
+      gap: 6px;
     }
 
-    .illust-circle svg {
-      width: 52px;
-      height: 52px;
-    }
-
-    .course-label {
+    .card-course {
       font-size: 10px;
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       color: #b8860b;
-      margin-bottom: 5px;
       font-weight: 600;
     }
 
-    .dish-name {
-      font-size: 17px;
-      color: #1a0f00;
-      letter-spacing: 1.5px;
-      margin-bottom: 4px;
-      font-weight: 400;
-      line-height: 1.4;
+    .card-name {
+      font-size: 20px;
+      color: #fdf8f0;
+      letter-spacing: 2px;
+      font-weight: 300;
     }
 
-    .dish-note {
+    .card-note {
       font-size: 12px;
-      color: #7a6a55;
-      letter-spacing: 0.5px;
+      color: rgba(253,248,240,0.45);
+      letter-spacing: 1px;
       line-height: 1.6;
     }
 
-    /* フッター */
-    .footer {
-      margin-top: 28px;
+    .card-number {
+      position: absolute;
+      right: 20px;
+      bottom: 15px;
+      font-size: 48px;
+      font-weight: 700;
+      color: rgba(184,134,11,0.06);
+      letter-spacing: -2px;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    /* ========== モーダル ========== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-box {
+      background: linear-gradient(160deg, #1a1408, #0f0d08);
+      border: 1px solid rgba(184,134,11,0.4);
+      border-radius: 4px;
+      padding: 50px 40px;
+      max-width: 420px;
+      width: 90%;
       text-align: center;
-      padding-top: 20px;
-      border-top: 1px solid rgba(184,134,11,0.2);
+      transform: scale(0.9) translateY(20px);
+      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+      overflow: hidden;
     }
 
-    .footer-deco {
-      font-size: 18px;
-      color: #b8860b;
-      letter-spacing: 8px;
-      margin-bottom: 10px;
+    .modal-overlay.open .modal-box {
+      transform: scale(1) translateY(0);
     }
 
-    .footer-text {
+    .modal-course {
       font-size: 11px;
-      color: #8b7355;
+      letter-spacing: 5px;
+      color: #b8860b;
+      margin-bottom: 16px;
+    }
+
+    .modal-name {
+      font-size: 28px;
+      color: #fdf8f0;
       letter-spacing: 3px;
+      font-weight: 300;
+      margin-bottom: 20px;
     }
 
-    @media (max-width: 480px) {
-      .menu-content { padding: 40px 22px; }
-      .main-title { font-size: 28px; letter-spacing: 6px; }
-      .menu-item { grid-template-columns: 68px 1fr; gap: 14px; }
-      .illust-circle { width: 64px; height: 64px; }
-      .illust-circle svg { width: 42px; height: 42px; }
-      .dish-name { font-size: 15px; }
+    .modal-divider {
+      width: 60px;
+      height: 1px;
+      background: rgba(184,134,11,0.5);
+      margin: 0 auto 20px;
     }
 
-    @media print {
-      body { background: white; padding: 10px; }
-      .menu-wrapper { box-shadow: none; border: 1px solid #ddd; }
+    .modal-desc {
+      font-size: 14px;
+      color: rgba(253,248,240,0.6);
+      letter-spacing: 1px;
+      line-height: 2;
+    }
+
+    .modal-close {
+      margin-top: 30px;
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: rgba(184,134,11,0.6);
+      cursor: pointer;
+      border: 1px solid rgba(184,134,11,0.3);
+      padding: 10px 24px;
+      display: inline-block;
+      transition: all 0.3s;
+    }
+
+    .modal-close:hover {
+      background: rgba(184,134,11,0.1);
+      color: #b8860b;
+    }
+
+    /* ========== レスポンシブ ========== */
+    @media (max-width: 500px) {
+      .menu-card { grid-template-columns: 85px 1fr; }
+      .card-canvas-wrap { width: 85px; height: 85px; }
+      .card-name { font-size: 16px; }
+      .card-body { padding: 15px 16px; }
+      .modal-box { padding: 35px 24px; }
+      .modal-name { font-size: 22px; }
+      .hero-title { font-size: 50px; letter-spacing: 10px; }
     }
   </style>
 </head>
 <body>
 
-  <div class="menu-wrapper">
-    <div class="corner tl"></div>
-    <div class="corner tr"></div>
-    <div class="corner bl"></div>
-    <div class="corner br"></div>
-    <div class="side-line left"></div>
-    <div class="side-line right"></div>
+<!-- ローディング -->
+<div id="loading">
+  <div class="loading-kanji">宴</div>
+  <div class="loading-bar-wrap">
+    <div class="loading-bar"></div>
+  </div>
+</div>
 
-    <div class="menu-content">
+<!-- 背景Canvas（金の粒子） -->
+<canvas id="bgCanvas"></canvas>
 
-      <!-- ヘッダー -->
-      <div class="header">
-        <div class="season-label">SUMMER  MENU</div>
-        <h1 class="main-title">夏の宴</h1>
-        <div class="subtitle">〜 旬を愉しむ和のひととき 〜</div>
-        <div class="header-divider"><span>◆</span></div>
+<!-- メイン -->
+<div id="main">
+
+  <!-- ヒーロー -->
+  <section class="hero">
+    <div class="hero-season">SUMMER KAISEKI  2026</div>
+    <h1 class="hero-title">夏の宴</h1>
+    <p class="hero-sub">〜 旬を愉しむ和のひととき 〜</p>
+    <div class="scroll-hint" onclick="document.querySelector('.menu-section').scrollIntoView({behavior:'smooth'})">
+      <span>MENU</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <!-- メニュー -->
+  <section class="menu-section">
+    <div class="section-header">
+      <h2>お 品 書 き</h2>
+      <p>— 各料理をタップすると詳細をご覧いただけます —</p>
+    </div>
+
+    <div id="menuList"></div>
+  </section>
+
+</div>
+
+<!-- モーダル -->
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal-box" id="modalBox">
+    <canvas class="modal-canvas" id="modalCanvas" width="420" height="300"></canvas>
+    <div class="modal-course" id="modalCourse"></div>
+    <div class="modal-name" id="modalName"></div>
+    <div class="modal-divider"></div>
+    <div class="modal-desc" id="modalDesc"></div>
+    <div class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">
+      ✕  と じ る
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== メニューデータ ==========
+const MENU = [
+  {
+    course: '冷 菜',
+    name: '彩り夏野菜のサラダ',
+    note: '旬の恵みを和風ジュレで爽やかに',
+    desc: '色とりどりの夏野菜を丁寧に仕込み\n柑橘香る和風ジュレで涼やかに仕上げました\n夏の始まりを彩る一皿です',
+    draw: drawSalad,
+    color: '#4caf50'
+  },
+  {
+    course: '酢の物',
+    name: '烏賊と胡瓜の酢和え',
+    note: 'やわらかな烏賊と胡瓜を涼やかな土佐酢で',
+    desc: '肉厚なやわらかな烏賊と\n蛇腹に切った胡瓜を土佐酢で和えました\n夏らしい涼味をお楽しみください',
+    draw: drawIka,
+    color: '#7986cb'
+  },
+  {
+    course: '強 肴',
+    name: '実山椒と合鴨のソテー',
+    note: '香ばしく焼き上げた鴨にピリリと山椒の香り',
+    desc: '丁寧に下処理した合鴨を香ばしくソテーし\n有馬の実山椒をたっぷりと添えました\nピリリとした刺激が食欲をそそります',
+    draw: drawDuck,
+    color: '#8d6e63'
+  },
+  {
+    course: '焼 物',
+    name: '鯛の塩釜焼き',
+    note: '一尾まるごと 潮の香りとともに豪快に',
+    desc: '天然真鯛を一尾まるごと塩で包み\nじっくりと焼き上げました\nテーブルで割る演出もお楽しみください',
+    draw: drawTai,
+    color: '#ff7043'
+  },
+  {
+    course: '食 事',
+    name: '鯛の炊き込みごはん',
+    note: '土鍋でふっくら炊き上げた鯛の旨みたっぷり',
+    desc: '先ほどの鯛の旨みを余すことなく\n土鍋の炊き込みごはんに仕上げました\n鯛のだしが染み渡る締めの一品です',
+    draw: drawRice,
+    color: '#ffb74d'
+  },
+  {
+    course: '甘 味',
+    name: '焼き立てシフォンケーキ',
+    note: 'ふわりと香るやさしい甘さで締めくくりに',
+    desc: 'オーブンから出したてのシフォンケーキを\n季節のフルーツと生クリームとともに\nやさしい甘さで宴の幕を閉じます',
+    draw: drawCake,
+    color: '#f48fb1'
+  }
+];
+
+// ========== 背景パーティクル ==========
+const bgCanvas = document.getElementById('bgCanvas');
+const bgCtx = bgCanvas.getContext('2d');
+let particles = [];
+let W, H;
+
+function resizeBg() {
+  W = bgCanvas.width  = window.innerWidth;
+  H = bgCanvas.height = window.innerHeight;
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+class Particle {
+  constructor() { this.reset(true); }
+  reset(init = false) {
+    this.x = Math.random() * W;
+    this.y = init ? Math.random() * H : H + 10;
+    this.size = Math.random() * 1.5 + 0.3;
+    this.speed = Math.random() * 0.4 + 0.1;
+    this.opacity = Math.random() * 0.5 + 0.1;
+    this.drift = (Math.random() - 0.5) * 0.3;
+    this.twinkle = Math.random() * Math.PI * 2;
+  }
+  update() {
+    this.y -= this.speed;
+    this.x += this.drift;
+    this.twinkle += 0.03;
+    this.currentOpacity = this.opacity * (0.6 + 0.4 * Math.sin(this.twinkle));
+    if (this.y < -10) this.reset();
+  }
+  draw() {
+    bgCtx.save();
+    bgCtx.globalAlpha = this.currentOpacity;
+    bgCtx.fillStyle = '#b8860b';
+    bgCtx.shadowBlur = 4;
+    bgCtx.shadowColor = '#ffd700';
+    bgCtx.beginPath();
+    bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    bgCtx.fill();
+    bgCtx.restore();
+  }
+}
+
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+function animateBg() {
+  bgCtx.clearRect(0, 0, W, H);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animateBg);
+}
+animateBg();
+
+// ========== カードのイラスト描画関数 ==========
+function drawSalad(ctx, w, h) {
+  const cx = w/2, cy = h/2;
+  // 大きな葉
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy+12);
+  ctx.bezierCurveTo(cx-14,cy+4, cx-16,cy-8, cx-6,cy-14);
+  ctx.bezierCurveTo(cx+4,cy-20, cx+16,cy-12, cx+14,cy-2);
+  ctx.bezierCurveTo(cx+12,cy+8, cx,cy+12, cx,cy+12);
+  ctx.fillStyle = 'rgba(76,175,80,0.25)';
+  ctx.strokeStyle = 'rgba(56,142,60,0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+  // トマト
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx-8, cy+2, 7, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(244,67,54,0.5)';
+  ctx.strokeStyle = 'rgba(211,47,47,0.8)';
+  ctx.lineWidth = 1.2;
+  ctx.fill(); ctx.stroke();
+  // へた
+  ctx.beginPath();
+  ctx.moveTo(cx-10, cy-5); ctx.lineTo(cx-8, cy-8); ctx.lineTo(cx-6, cy-5);
+  ctx.strokeStyle = 'rgba(56,142,60,0.9)';
+  ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.restore();
+}
+
+function drawIka(ctx, w, h) {
+  const cx = w/2, cy = h/2;
+  // 胴体
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy-16);
+  ctx.bezierCurveTo(cx-10,cy-16, cx-12,cy-8, cx-12,cy);
+  ctx.bezierCurveTo(cx-12,cy+10, cx-8,cy+14, cx,cy+14);
+  ctx.bezierCurveTo(cx+8,cy+14, cx+12,cy+10, cx+12,cy);
+  ctx.bezierCurveTo(cx+12,cy-8, cx+10,cy-16, cx,cy-16);
+  ctx.fillStyle = 'rgba(200,200,240,0.4)';
+  ctx.strokeStyle = 'rgba(100,100,200,0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.fill(); ctx.stroke();
+  // 触手
+  const tentacles = [-8,-4,0,4,8];
+  tentacles.forEach((tx, i) => {
+    ctx.beginPath();
+    ctx.moveTo(cx+tx, cy+14);
+    ctx.bezierCurveTo(cx+tx+(i%2?3:-3), cy+20, cx+tx+(i%2?-2:2), cy+26, cx+tx, cy+30);
+    ctx.strokeStyle = 'rgba(100,100,200,0.55)';
+    ctx.lineWidth = 1.8; ctx.lineCap = 'round'; ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawDuck(ctx, w, h) {
+  const cx = w/2, cy = h/2;
+  // 鴨肉
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy+4, 16, 10, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(139,90,60,0.55)';
+  ctx.strokeStyle = 'rgba(100,60,30,0.8)';
+  ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
+  // 焼き目
+  [cy, cy+4, cy+8].forEach((ly, i) => {
+    ctx.beginPath();
+    ctx.moveTo(cx-14, ly-2);
+    ctx.bezierCurveTo(cx-7,ly-4, cx+7,ly-4, cx+14,ly-2);
+    ctx.strokeStyle = `rgba(40,20,5,${0.7-i*0.15})`;
+    ctx.lineWidth = 1.5+i*0.3; ctx.lineCap='round'; ctx.stroke();
+  });
+  // 山椒の実
+  [[cx-8,cy-14],[cx+6,cy-16],[cx,cy-22]].forEach(([bx,by]) => {
+    ctx.beginPath(); ctx.arc(bx, by, 3, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(100,180,60,0.85)';
+    ctx.strokeStyle = 'rgba(56,142,60,0.9)';
+    ctx.lineWidth = 0.8; ctx.fill(); ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawTai(ctx, w, h) {
+  const cx = w/2, cy = h/2;
+  // 塩釜
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx-20, cy+12);
+  ctx.bezierCurveTo(cx-22,cy-2, cx-18,cy-16, cx,cy-16);
+  ctx.bezierCurveTo(cx+18,cy-16, cx+22,cy-2, cx+20,cy+12);
+  ctx.fillStyle = 'rgba(245,240,228,0.65)';
+  ctx.strokeStyle = 'rgba(200,185,150,0.8)';
+  ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
+  // 鯛シルエット
+  ctx.beginPath();
+  ctx.ellipse(cx-2, cy-2, 13, 6, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,120,80,0.2)';
+  ctx.strokeStyle = 'rgba(220,80,40,0.3)';
+  ctx.lineWidth = 1; ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function drawRice(ctx, w, h) {
+  const cx = w/2, cy = h/2;
+  // 土鍋
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx-18, cy-2);
+  ctx.lineTo(cx-18, cy+16);
+  ctx.bezierCurveTo(cx-18,cy+21, cx-10,cy+24, cx,cy+24);
+  ctx.bezierCurveTo(cx+10,cy+24, cx+18,cy+21, cx+18,cy+16);
+  ctx.lineTo(cx+18, cy-2);
+  ctx.fillStyle = 'rgba(190,150,100,0.35)';
+  ctx.strokeStyle = 'rgba(140,100,60,0.7)';
+  ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
+  // ごはん
+  ctx.beginPath();
+  ctx.ellipse(cx, cy-2, 15, 5, 0, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,252,240,0.9)';
+  ctx.fill();
+  // 鯛の身
+  ctx.beginPath();
+  ctx.moveTo(cx-8, cy-5);
+  ctx.bezierCurveTo(cx-4,cy-9, cx+4,cy-9, cx+8,cy-5);
+  ctx.fillStyle = 'rgba(255,160,140,0.65)';
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCake(ctx, w, h) {
+  const cx = w/2, cy = h/2;
+  // ケーキ本体
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx-18, cy+14);
+  ctx.lineTo(cx-18, cy+2);
+  ctx.bezierCurveTo(cx-18,cy-10, cx-10,cy-16, cx,cy-16);
+  ctx.bezierCurveTo(cx+10,cy-16, cx+18,cy-10, cx+18,cy+2);
+  ctx.lineTo(cx+18, cy+14);
+  ctx.fillStyle = 'rgba(255,220,160,0.5)';
+  ctx.strokeStyle = 'rgba(210,160,80,0.7)';
+  ctx.lineWidth = 1.5; ctx.fill(); ctx.stroke();
+  // 中心の穴
+  ctx.beginPath();
+  ctx.moveTo(cx-7, cy+14);
+  ctx.lineTo(cx-7, cy+2);
+  ctx.bezierCurveTo(cx-7,cy-4, cx-3,cy-7, cx,cy-7);
+  ctx.bezierCurveTo(cx+3,cy-7, cx+7,cy-4, cx+7,cy+2);
+  ctx.lineTo(cx+7, cy+14);
+  ctx.fillStyle = 'rgba(255,248,235,0.95)';
+  ctx.fill();
+  // いちご
+  ctx.beginPath();
+  ctx.moveTo(cx, cy-12);
+  ctx.bezierCurveTo(cx-6,cy-12, cx-8,cy-6, cx-6,cy-2);
+  ctx.bezierCurveTo(cx-4,cy+1, cx+4,cy+1, cx+6,cy-2);
+  ctx.bezierCurveTo(cx+8,cy-6, cx+6,cy-12, cx,cy-12);
+  ctx.fillStyle = 'rgba(244,67,54,0.7)';
+  ctx.fill();
+  ctx.restore();
+}
+
+// ========== カード生成 ==========
+function buildCards() {
+  const list = document.getElementById('menuList');
+  MENU.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'menu-card';
+    card.innerHTML = `
+      <div class="card-canvas-wrap">
+        <canvas width="110" height="110"></canvas>
       </div>
-
-      <div class="menu-items">
-
-        <!-- 1. 彩り夏野菜のサラダ -->
-        <div class="menu-item">
-          <div class="illust-circle">
-            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M26 40 C14 34 11 22 20 15 C29 8 42 14 38 27 C35 38 26 40 26 40Z"
-                fill="rgba(76,175,80,0.25)" stroke="rgba(56,142,60,0.7)" stroke-width="1.5"/>
-              <path d="M26 40 C25 32 22 24 20 15" stroke="rgba(56,142,60,0.5)" stroke-width="1" stroke-dasharray="2,2"/>
-              <circle cx="18" cy="26" r="6" fill="rgba(244,67,54,0.35)" stroke="rgba(211,47,47,0.7)" stroke-width="1.2"/>
-              <path d="M18 20 C17 17 19 16 18 20Z" fill="rgba(56,142,60,0.8)"/>
-              <path d="M28 34 C25 29 27 23 31 25 C34 27 32 34 28 34Z"
-                fill="rgba(255,193,7,0.35)" stroke="rgba(245,127,23,0.6)" stroke-width="1"/>
-              <ellipse cx="34" cy="22" rx="4" ry="5.5"
-                fill="rgba(76,175,80,0.3)" stroke="rgba(56,142,60,0.6)" stroke-width="1"/>
-              <ellipse cx="34" cy="22" rx="2" ry="3"
-                fill="rgba(76,175,80,0.1)" stroke="rgba(56,142,60,0.3)" stroke-width="0.7"/>
-            </svg>
-          </div>
-          <div class="item-body">
-            <div class="course-label">【 冷 菜 】</div>
-            <div class="dish-name">彩り夏野菜のサラダ</div>
-            <div class="dish-note">旬の恵みを和風ジュレで爽やかに</div>
-          </div>
-        </div>
-
-        <!-- 2. 烏賊と胡瓜の酢和え -->
-        <div class="menu-item">
-          <div class="illust-circle">
-            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- 烏賊の胴体 -->
-              <path d="M26 10 C20 10 17 15 17 22 C17 29 20 33 26 33 C32 33 35 29 35 22 C35 15 32 10 26 10Z"
-                fill="rgba(224,224,240,0.5)" stroke="rgba(120,120,180,0.7)" stroke-width="1.5"/>
-              <!-- 目 -->
-              <circle cx="22" cy="20" r="2" fill="rgba(80,80,140,0.5)" stroke="rgba(80,80,140,0.7)" stroke-width="0.8"/>
-              <circle cx="30" cy="20" r="2" fill="rgba(80,80,140,0.5)" stroke="rgba(80,80,140,0.7)" stroke-width="0.8"/>
-              <!-- 耳ヒレ -->
-              <path d="M17 16 C13 14 12 18 15 21 C16 19 17 17 17 16Z"
-                fill="rgba(200,200,230,0.5)" stroke="rgba(120,120,180,0.6)" stroke-width="1"/>
-              <path d="M35 16 C39 14 40 18 37 21 C36 19 35 17 35 16Z"
-                fill="rgba(200,200,230,0.5)" stroke="rgba(120,120,180,0.6)" stroke-width="1"/>
-              <!-- 触手 -->
-              <path d="M21 33 C20 37 19 40 20 43" stroke="rgba(120,120,180,0.6)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M24 34 C24 38 23 41 24 44" stroke="rgba(120,120,180,0.6)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M28 34 C28 38 29 41 28 44" stroke="rgba(120,120,180,0.6)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M31 33 C32 37 33 40 32 43" stroke="rgba(120,120,180,0.6)" stroke-width="2" stroke-linecap="round"/>
-              <!-- きゅうり輪切り -->
-              <circle cx="41" cy="24" r="5.5" fill="rgba(76,175,80,0.3)" stroke="rgba(56,142,60,0.6)" stroke-width="1"/>
-              <circle cx="41" cy="24" r="2.5" fill="rgba(76,175,80,0.1)" stroke="rgba(56,142,60,0.3)" stroke-width="0.7"/>
-              <!-- きゅうりの線 -->
-              <line x1="41" y1="18.5" x2="41" y2="29.5" stroke="rgba(56,142,60,0.3)" stroke-width="0.7"/>
-              <line x1="35.5" y1="24" x2="46.5" y2="24" stroke="rgba(56,142,60,0.3)" stroke-width="0.7"/>
-            </svg>
-          </div>
-          <div class="item-body">
-            <div class="course-label">【 酢の物 】</div>
-            <div class="dish-name">烏賊と胡瓜の酢和え</div>
-            <div class="dish-note">やわらかな烏賊と胡瓜を涼やかな土佐酢で</div>
-          </div>
-        </div>
-
-        <!-- 3. 実山椒と合鴨のソテー -->
-        <div class="menu-item">
-          <div class="illust-circle">
-            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- お皿 -->
-              <ellipse cx="26" cy="40" rx="18" ry="4"
-                fill="rgba(230,220,200,0.4)" stroke="rgba(180,160,120,0.5)" stroke-width="1"/>
-              <!-- 鴨肉 -->
-              <path d="M12 33 C12 27 18 23 26 23 C34 23 40 27 40 33 C40 37 34 39 26 39 C18 39 12 37 12 33Z"
-                fill="rgba(139,90,60,0.45)" stroke="rgba(100,60,30,0.7)" stroke-width="1.5"/>
-              <!-- 焼き目 -->
-              <path d="M14 30 C20 28 32 28 38 30" stroke="rgba(60,30,10,0.7)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M14 33 C20 31 32 31 38 33" stroke="rgba(60,30,10,0.5)" stroke-width="1.5" stroke-linecap="round"/>
-              <!-- 山椒の枝 -->
-              <path d="M24 21 C23 16 26 12 26 12" stroke="rgba(56,142,60,0.7)" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M23 18 C20 16 18 13 18 13" stroke="rgba(56,142,60,0.6)" stroke-width="1.2" stroke-linecap="round"/>
-              <path d="M25 15 C22 13 21 10 21 10" stroke="rgba(56,142,60,0.5)" stroke-width="1" stroke-linecap="round"/>
-              <!-- 山椒の実 -->
-              <circle cx="18" cy="13" r="2.2" fill="rgba(100,180,60,0.8)" stroke="rgba(56,142,60,0.9)" stroke-width="0.8"/>
-              <circle cx="21" cy="10" r="2.2" fill="rgba(100,180,60,0.8)" stroke="rgba(56,142,60,0.9)" stroke-width="0.8"/>
-              <circle cx="26" cy="12" r="2.4" fill="rgba(100,180,60,0.8)" stroke="rgba(56,142,60,0.9)" stroke-width="0.8"/>
-              <!-- 湯気 -->
-              <path d="M20 23 C19 20 21 18 20 16" stroke="rgba(200,200,200,0.5)" stroke-width="1.2" stroke-linecap="round"/>
-              <path d="M26 22 C25 19 27 17 26 15" stroke="rgba(200,200,200,0.5)" stroke-width="1.2" stroke-linecap="round"/>
-              <path d="M32 23 C31 20 33 18 32 16" stroke="rgba(200,200,200,0.5)" stroke-width="1.2" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="item-body">
-            <div class="course-label">【 強 肴 】</div>
-            <div class="dish-name">実山椒と合鴨のソテー</div>
-            <div class="dish-note">香ばしく焼き上げた鴨にピリリと山椒の香り</div>
-          </div>
-        </div>
-
-        <!-- 4. 鯛の塩釜焼き -->
-        <div class="menu-item">
-          <div class="illust-circle">
-            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- 塩釜の土台 -->
-              <path d="M8 38 L8 43 C8 44.1 8.9 45 10 45 L42 45 C43.1 45 44 44.1 44 43 L44 38 Z"
-                fill="rgba(220,210,190,0.6)" stroke="rgba(180,160,120,0.6)" stroke-width="1"/>
-              <!-- 塩釜 -->
-              <path d="M10 38 C10 26 16 16 26 16 C36 16 42 26 42 38 Z"
-                fill="rgba(245,240,225,0.7)" stroke="rgba(200,185,150,0.8)" stroke-width="1.5"/>
-              <!-- 塩のテクスチャ -->
-              <path d="M14 34 C18 32 24 31 30 32 C36 33 40 35 40 35"
-                stroke="rgba(200,185,150,0.5)" stroke-width="1" stroke-dasharray="2,3"/>
-              <path d="M12 37 C17 35 23 34 29 35 C35 36 40 37 42 37"
-                stroke="rgba(200,185,150,0.5)" stroke-width="1" stroke-dasharray="2,3"/>
-              <!-- 鯛のシルエット -->
-              <ellipse cx="26" cy="30" rx="11" ry="5"
-                fill="rgba(255,120,80,0.2)" stroke="rgba(220,80,40,0.35)" stroke-width="1"/>
-              <!-- 尾ひれ -->
-              <path d="M35 30 C39 26 41 30 38 34 C41 33 39 37 35 30Z"
-                fill="rgba(255,120,80,0.2)" stroke="rgba(220,80,40,0.3)" stroke-width="1"/>
-              <!-- 目 -->
-              <circle cx="19" cy="29" r="1.5" fill="rgba(100,60,40,0.3)" stroke="rgba(100,60,40,0.4)" stroke-width="0.5"/>
-              <!-- 湯気 -->
-              <path d="M18 14 C17 11 19 9 18 7" stroke="rgba(180,180,180,0.6)" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M26 13 C25 10 27 8 26 6" stroke="rgba(180,180,180,0.6)" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M34 14 C33 11 35 9 34 7" stroke="rgba(180,180,180,0.6)" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="item-body">
-            <div class="course-label">【 焼 物 】</div>
-            <div class="dish-name">鯛の塩釜焼き</div>
-            <div class="dish-note">一尾まるごと 潮の香りとともに豪快に</div>
-          </div>
-        </div>
-
-        <!-- 5. 鯛の炊き込みごはん -->
-        <div class="menu-item">
-          <div class="illust-circle">
-            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- 土鍋の底 -->
-              <ellipse cx="26" cy="42" rx="18" ry="4"
-                fill="rgba(180,140,100,0.5)" stroke="rgba(140,100,60,0.7)" stroke-width="1"/>
-              <!-- 土鍋の胴体 -->
-              <path d="M10 28 L10 42 C10 42 16 46 26 46 C36 46 42 42 42 42 L42 28 Z"
-                fill="rgba(200,160,110,0.4)" stroke="rgba(150,110,70,0.7)" stroke-width="1.5"/>
-              <!-- 土鍋の上部楕円 -->
-              <ellipse cx="26" cy="28" rx="16" ry="5"
-                fill="rgba(210,170,120,0.5)" stroke="rgba(150,110,70,0.7)" stroke-width="1.5"/>
-              <!-- ごはん -->
-              <ellipse cx="26" cy="27" rx="13" ry="4"
-                fill="rgba(255,250,235,0.9)" stroke="rgba(210,190,150,0.6)" stroke-width="1"/>
-              <!-- ごはんのつぶつぶ -->
-              <circle cx="20" cy="27" r="1" fill="rgba(240,230,200,0.8)"/>
-              <circle cx="24" cy="26" r="1" fill="rgba(240,230,200,0.8)"/>
-              <circle cx="28" cy="27" r="1" fill="rgba(240,230,200,0.8)"/>
-              <circle cx="32" cy="26" r="1" fill="rgba(240,230,200,0.8)"/>
-              <circle cx="22" cy="28.5" r="1" fill="rgba(240,230,200,0.8)"/>
-              <circle cx="30" cy="28.5" r="1" fill="rgba(240,230,200,0.8)"/>
-              <!-- 鯛の身（ピンク） -->
-              <path d="M20 25 C22 22 30 22 32 25 C30 24 22 24 20 25Z"
-                fill="rgba(255,150,130,0.6)" stroke="rgba(220,100,80,0.5)" stroke-width="0.8"/>
-              <!-- 土鍋の耳 -->
-              <path d="M10 32 C7 31 6 34 8 35 C9 33 10 32 10 32Z"
-                fill="rgba(180,140,100,0.6)" stroke="rgba(140,100,60,0.7)" stroke-width="1"/>
-              <path d="M42 32 C45 31 46 34 44 35 C43 33 42 32 42 32Z"
-                fill="rgba(180,140,100,0.6)" stroke="rgba(140,100,60,0.7)" stroke-width="1"/>
-              <!-- 蓋のつまみ -->
-              <circle cx="26" cy="19" r="3"
-                fill="rgba(200,160,110,0.7)" stroke="rgba(150,110,70,0.8)" stroke-width="1"/>
-              <!-- 蓋 -->
-              <path d="M13 24 C13 19 18 16 26 16 C34 16 39 19 39 24"
-                fill="rgba(210,170,120,0.5)" stroke="rgba(150,110,70,0.7)" stroke-width="1.5"/>
-              <!-- 湯気 -->
-              <path d="M20 15 C19 12 21 10 20 8" stroke="rgba(200,200,200,0.6)" stroke-width="1.3" stroke-linecap="round"/>
-              <path d="M26 14 C25 11 27 9 26 7" stroke="rgba(200,200,200,0.6)" stroke-width="1.3" stroke-linecap="round"/>
-              <path d="M32 15 C31 12 33 10 32 8" stroke="rgba(200,200,200,0.6)" stroke-width="1.3" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="item-body">
-            <div class="course-label">【 食 事 】</div>
-            <div class="dish-name">鯛の炊き込みごはん</div>
-            <div class="dish-note">土鍋でふっくら炊き上げた鯛の旨みたっぷり</div>
-          </div>
-        </div>
-
-        <!-- 6. 焼き立てシフォンケーキ -->
-        <div class="menu-item">
-          <div class="illust-circle">
-            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- ケーキ本体 -->
-              <path d="M10 34 C10 24 17 18 26 18 C35 18 42 24 42 34 L42 40 C42 42.2 40.2 44 38 44 L14 44 C11.8 44 10 42.2 10 40 Z"
-                fill="rgba(255,220,160,0.5)" stroke="rgba(210,160,80,0.7)" stroke-width="1.5"/>
-              <!-- 中心の穴 -->
-              <path d="M20 34 C20 28 22 24 26 24 C30 24 32 28 32 34 L32 40 C32 41.1 31.1 42 30 42 L22 42 C20.9 42 20 41.1 20 40 Z"
-                fill="rgba(255,245,220,0.9)" stroke="rgba(210,160,80,0.5)" stroke-width="1"/>
-              <!-- 上面 -->
-              <ellipse cx="26" cy="34" rx="16" ry="5"
-                fill="rgba(255,230,170,0.7)" stroke="rgba(210,160,80,0.7)" stroke-width="1.2"/>
-              <!-- 穴の上面 -->
-              <ellipse cx="26" cy="34" rx="6" ry="2.5"
-                fill="rgba(255,248,235,0.95)" stroke="rgba(210,160,80,0.4)" stroke-width="0.8"/>
-              <!-- クリーム -->
-              <path d="M14 32 C17 28 20 27 22 29 C24 27 26 25 28 27 C30 25 33 27 36 29 C38 27 40 29 40 32"
-                fill="rgba(255,255,255,0.75)" stroke="rgba(220,200,180,0.5)" stroke-width="0.8"/>
-              <!-- いちご -->
-              <path d="M23 27 C23 22 27 20 28 20 C29 20 33 22 33 27 C33 31 29 33 28 33 C27 33 23 31 23 27Z"
-                fill="rgba(244,67,54,0.65)" stroke="rgba(183,28,28,0.7)" stroke-width="1"/>
-              <!-- いちごのへた -->
-              <path d="M26 20 C25 18 27 17 28 20Z" fill="rgba(56,142,60,0.9)"/>
-              <path d="M30 20 C31 18 29 17 28 20Z" fill="rgba(56,142,60,0.9)"/>
-              <!-- いちごの模様 -->
-              <circle cx="26" cy="26" r="0.8" fill="rgba(255,200,200,0.6)"/>
-              <circle cx="29" cy="28" r="0.8" fill="rgba(255,200,200,0.6)"/>
-              <circle cx="27" cy="30" r="0.8" fill="rgba(255,200,200,0.6)"/>
-              <!-- ミント -->
-              <path d="M33 25 C36 22 38 20 37 18 C35 21 33 25 33 25Z"
-                fill="rgba(76,175,80,0.7)" stroke="rgba(56,142,60,0.6)" stroke-width="0.5"/>
-              <!-- 湯気 -->
-              <path d="M19 17 C18 14 20 12 19 10" stroke="rgba(210,180,140,0.5)" stroke-width="1.2" stroke-linecap="round"/>
-              <path d="M26 16 C25 13 27 11 26 9" stroke="rgba(210,180,140,0.5)" stroke-width="1.2" stroke-linecap="round"/>
-              <path d="M33 17 C32 14 34 12 33 10" stroke="rgba(210,180,140,0.5)" stroke-width="1.2" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="item-body">
-            <div class="course-label">【 甘 味 】</div>
-            <div class="dish-name">焼き立てシフォンケーキ</div>
-            <div class="dish-note">ふわりと香るやさしい甘さで締めくくりに</div>
-          </div>
-        </div>
-
-      </div><!-- /.menu-items -->
-
-      <!-- フッター -->
-      <div class="footer">
-        <div class="footer-deco">❧ ✦ ❧</div>
-        <div class="footer-text">本日はありがとうございます</div>
+      <div class="card-body">
+        <div class="card-course">【 ${item.course} 】</div>
+        <div class="card-name">${item.name}</div>
+        <div class="card-note">${item.note}</div>
       </div>
+      <div class="card-number">0${idx+1}</div>
+    `;
+    list.appendChild(card);
 
-    </div><!-- /.menu-content -->
-  </div><!-- /.menu-wrapper -->
+    // イラスト描画
+    const canvas = card.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    item.draw(ctx, 110, 110);
 
+    // ホバーアニメーション
+    let angle = 0;
+    let animId = null;
+    card.addEventListener('mouseenter', () => {
+      if(animId) return;
+      function animate() {
+        ctx.clearRect(0,0,110,110);
+        ctx.save();
+        ctx.translate(55,55);
+        ctx.rotate(Math.sin(angle)*0.04);
+        ctx.translate(-55,-55);
+        item.draw(ctx,110,110);
+        ctx.restore();
+        angle += 0.08;
+        animId = requestAnimationFrame(animate);
+      }
+      animate();
+    });
+    card.addEventListener('mouseleave', () => {
+      if(animId){ cancelAnimationFrame(animId); animId=null; }
+      ctx.clearRect(0,0,110,110);
+      item.draw(ctx,110,110);
+      angle = 0;
+    });
+
+    // クリックでモーダル
+    card.addEventListener('click', () => openModal(item));
+
+    // 遅延付きで表示
+    card.style.transitionDelay = `${idx * 0.12}s`;
+  });
+}
+
+// ========== IntersectionObserver ==========
+function observeCards() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting) {
+        e.target.classList.add('in-view');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.menu-card').forEach(c => observer.observe(c));
+}
+
+// ========== モーダル ==========
+function openModal(item) {
+  document.getElementById('modalCourse').textContent = `【 ${item.course} 】`;
+  document.getElementById('modalName').textContent = item.name;
+  document.getElementById('modalDesc').innerHTML = item.desc.replace(/\n/g,'<br>');
+
+  // モーダルパーティクル
+  const mc = document.getElementById('modalCanvas');
+  mc.width = document.getElementById('modalBox').offsetWidth || 380;
+  mc.height = 300;
+  const mctx = mc.getContext('2d');
+
+  let mParticles = [];
+  for(let i=0;i<40;i++){
+    mParticles.push({
+      x: Math.random()*mc.width,
+      y: Math.random()*mc.height,
+      r: Math.random()*1.5+0.3,
+      speed: Math.random()*0.5+0.1,
+      opacity: Math.random()*0.4+0.1,
+      color: item.color
+    });
+  }
+
+  let mAnimId;
+  function animModal() {
+    mctx.clearRect(0,0,mc.width,mc.height);
+    mParticles.forEach(p => {
+      p.y -= p.speed;
+      if(p.y < 0) p.y = mc.height;
+      mctx.save();
+      mctx.globalAlpha = p.opacity;
+      mctx.fillStyle = p.color;
+      mctx.shadowBlur = 6;
+      mctx.shadowColor = p.color;
+      mctx.beginPath();
+      mctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      mctx.fill();
+      mctx.restore();
+    });
+    mAnimId = requestAnimationFrame(animModal);
+  }
+
+  if(window._modalAnimId) cancelAnimationFrame(window._modalAnimId);
+  animModal();
+  window._modalAnimId = mAnimId;
+
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(e) {
+  if(e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('open');
+    if(window._modalAnimId) cancelAnimationFrame(window._modalAnimId);
+  }
+}
+
+// ========== 初期化 ==========
+window.addEventListener('load', () => {
+  buildCards();
+
+  setTimeout(() => {
+    const loading = document.getElementById('loading');
+    loading.style.opacity = '0';
+    setTimeout(() => {
+      loading.style.display = 'none';
+      document.getElementById('main').classList.add('visible');
+      setTimeout(observeCards, 300);
+    }, 800);
+  }, 2000);
+});
+</script>
 </body>
 </html>
+
 
