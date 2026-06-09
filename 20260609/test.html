@@ -16,290 +16,485 @@
     body {
       background: linear-gradient(135deg, #f8f4e6 0%, #f2ede0 100%);
       font-family: 'Noto Serif JP', serif;
-      padding: 20px;
+      padding: 30px 20px;
       min-height: 100vh;
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
     }
 
     .menu-wrapper {
-      max-width: 600px;
+      max-width: 580px;
       width: 100%;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+      background: linear-gradient(160deg, #fdf8f0 0%, #f9f2e4 100%);
+      border-radius: 4px;
+      box-shadow:
+        0 25px 60px rgba(0,0,0,0.15),
+        0 0 0 1px rgba(184,134,11,0.3),
+        inset 0 0 80px rgba(255,255,255,0.4);
       position: relative;
       overflow: hidden;
     }
 
-    /* 四隅の和風装飾 */
-    .corner-decoration {
+    .menu-wrapper::before {
+      content: '';
       position: absolute;
-      width: 40px;
-      height: 40px;
-      border: 2px solid #b8860b;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 3px,
+          rgba(184,134,11,0.02) 3px,
+          rgba(184,134,11,0.02) 4px
+        );
+      pointer-events: none;
+      z-index: 0;
     }
-    .corner-tl { top: 15px; left: 15px; border-right: none; border-bottom: none; }
-    .corner-tr { top: 15px; right: 15px; border-left: none; border-bottom: none; }
-    .corner-bl { bottom: 15px; left: 15px; border-right: none; border-top: none; }
-    .corner-br { bottom: 15px; right: 15px; border-left: none; border-top: none; }
+
+    /* 四隅の装飾 */
+    .corner { position: absolute; width: 50px; height: 50px; z-index: 2; }
+    .corner::before,
+    .corner::after {
+      content: '';
+      position: absolute;
+      background: #b8860b;
+    }
+    .corner::before { width: 100%; height: 2px; top: 0; }
+    .corner::after  { width: 2px; height: 100%; top: 0; }
+    .corner.tl { top: 18px; left: 18px; }
+    .corner.tr { top: 18px; right: 18px; transform: scaleX(-1); }
+    .corner.bl { bottom: 18px; left: 18px; transform: scaleY(-1); }
+    .corner.br { bottom: 18px; right: 18px; transform: scale(-1); }
+
+    .side-line {
+      position: absolute;
+      top: 80px;
+      bottom: 80px;
+      width: 1px;
+      background: linear-gradient(to bottom, transparent, rgba(184,134,11,0.3), transparent);
+      z-index: 1;
+    }
+    .side-line.left  { left: 10px; }
+    .side-line.right { right: 10px; }
 
     .menu-content {
-      padding: 50px 40px;
+      padding: 55px 45px;
       position: relative;
+      z-index: 1;
     }
 
     /* ヘッダー */
     .header {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 35px;
     }
 
-    .season-tag {
-      font-size: 12px;
-      letter-spacing: 4px;
+    .season-label {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: 5px;
       color: #b8860b;
-      margin-bottom: 8px;
+      border: 1px solid rgba(184,134,11,0.4);
+      padding: 4px 16px;
+      margin-bottom: 18px;
     }
 
     .main-title {
-      font-size: 36px;
+      font-size: 40px;
       font-weight: 300;
-      color: #2c1810;
-      letter-spacing: 8px;
-      margin-bottom: 10px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      color: #1a0f00;
+      letter-spacing: 12px;
+      margin-bottom: 12px;
+      text-indent: 12px;
     }
 
     .subtitle {
-      font-size: 14px;
+      font-size: 13px;
       color: #8b7355;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
     }
 
-    .divider {
-      width: 120px;
-      height: 2px;
-      background: linear-gradient(to right, transparent, #b8860b, transparent);
-      margin: 25px auto;
+    .header-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 22px 0;
+    }
+    .header-divider::before,
+    .header-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, #b8860b);
+    }
+    .header-divider::after {
+      background: linear-gradient(to left, transparent, #b8860b);
+    }
+    .header-divider span {
+      color: #b8860b;
+      font-size: 14px;
     }
 
-    /* メニューアイテム */
+    /* メニューリスト */
     .menu-items {
       display: flex;
       flex-direction: column;
-      gap: 25px;
     }
 
     .menu-item {
-      display: flex;
-      align-items: center;
+      display: grid;
+      grid-template-columns: 90px 1fr;
       gap: 20px;
-      padding: 20px 15px;
-      border-bottom: 1px dashed rgba(184, 134, 11, 0.2);
-      transition: transform 0.2s ease;
-    }
-
-    .menu-item:hover {
-      transform: translateX(5px);
+      align-items: center;
+      padding: 16px 10px;
+      border-bottom: 1px solid rgba(184,134,11,0.15);
+      transition: background 0.3s;
     }
 
     .menu-item:last-child {
       border-bottom: none;
     }
 
-    /* イラストエリア */
-    .item-illustration {
-      width: 80px;
-      height: 80px;
+    .menu-item:hover {
+      background: rgba(184,134,11,0.04);
+    }
+
+    .illust-circle {
+      width: 78px;
+      height: 78px;
       border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #fff, #f8f4e6);
-      border: 2px solid rgba(184, 134, 11, 0.3);
+      background: radial-gradient(circle at 35% 35%, #fff 0%, #f5efe0 100%);
+      border: 1.5px solid rgba(184,134,11,0.35);
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08), inset 0 1px 3px rgba(255,255,255,0.8);
       flex-shrink: 0;
-      position: relative;
-      overflow: hidden;
     }
 
-    .item-illustration svg {
-      width: 50px;
-      height: 50px;
+    .illust-circle svg {
+      width: 52px;
+      height: 52px;
     }
 
-    /* テキストエリア */
-    .item-text {
-      flex: 1;
-    }
-
-    .course-type {
-      font-size: 11px;
+    .course-label {
+      font-size: 10px;
+      letter-spacing: 3px;
       color: #b8860b;
-      letter-spacing: 2px;
       margin-bottom: 5px;
       font-weight: 600;
     }
 
     .dish-name {
-      font-size: 20px;
-      color: #2c1810;
-      margin-bottom: 5px;
+      font-size: 17px;
+      color: #1a0f00;
+      letter-spacing: 1.5px;
+      margin-bottom: 4px;
       font-weight: 400;
-      letter-spacing: 1px;
+      line-height: 1.4;
     }
 
-    .dish-description {
-      font-size: 13px;
-      color: #666;
-      line-height: 1.5;
+    .dish-note {
+      font-size: 12px;
+      color: #7a6a55;
       letter-spacing: 0.5px;
+      line-height: 1.6;
     }
 
     /* フッター */
     .footer {
+      margin-top: 28px;
       text-align: center;
-      margin-top: 35px;
-      padding-top: 25px;
-      border-top: 1px solid rgba(184, 134, 11, 0.2);
-      font-size: 12px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(184,134,11,0.2);
+    }
+
+    .footer-deco {
+      font-size: 18px;
+      color: #b8860b;
+      letter-spacing: 8px;
+      margin-bottom: 10px;
+    }
+
+    .footer-text {
+      font-size: 11px;
       color: #8b7355;
       letter-spacing: 3px;
     }
 
-    /* レスポンシブ対応 */
-    @media (max-width: 600px) {
-      .menu-content {
-        padding: 30px 25px;
-      }
-      .main-title {
-        font-size: 28px;
-        letter-spacing: 4px;
-      }
-      .menu-item {
-        flex-direction: column;
-        text-align: center;
-        gap: 15px;
-      }
+    @media (max-width: 480px) {
+      .menu-content { padding: 40px 22px; }
+      .main-title { font-size: 28px; letter-spacing: 6px; }
+      .menu-item { grid-template-columns: 68px 1fr; gap: 14px; }
+      .illust-circle { width: 64px; height: 64px; }
+      .illust-circle svg { width: 42px; height: 42px; }
+      .dish-name { font-size: 15px; }
+    }
+
+    @media print {
+      body { background: white; padding: 10px; }
+      .menu-wrapper { box-shadow: none; border: 1px solid #ddd; }
     }
   </style>
 </head>
 <body>
+
   <div class="menu-wrapper">
-    <!-- 四隅装飾 -->
-    <div class="corner-decoration corner-tl"></div>
-    <div class="corner-decoration corner-tr"></div>
-    <div class="corner-decoration corner-bl"></div>
-    <div class="corner-decoration corner-br"></div>
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+    <div class="side-line left"></div>
+    <div class="side-line right"></div>
 
     <div class="menu-content">
+
       <!-- ヘッダー -->
       <div class="header">
-        <div class="season-tag">SUMMER KAISEKI</div>
+        <div class="season-label">SUMMER  MENU</div>
         <h1 class="main-title">夏の宴</h1>
         <div class="subtitle">〜 旬を愉しむ和のひととき 〜</div>
-        <div class="divider"></div>
+        <div class="header-divider"><span>◆</span></div>
       </div>
 
-      <!-- メニューアイテム -->
       <div class="menu-items">
-        <!-- 夏野菜のサラダ -->
+
+        <!-- 1. 彩り夏野菜のサラダ -->
         <div class="menu-item">
-          <div class="item-illustration">
-            <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- 大きな葉 -->
-              <path d="M25 35 C15 30 12 20 20 15 C28 10 38 15 35 25 C32 35 25 35 25 35Z" fill="rgba(76, 175, 80, 0.3)" stroke="rgba(76, 175, 80, 0.7)" stroke-width="1.5"/>
-              <!-- トマト -->
-              <circle cx="18" cy="22" r="6" fill="rgba(244, 67, 54, 0.4)" stroke="rgba(244, 67, 54, 0.8)" stroke-width="1.2"/>
-              <path d="M18 16 C17 14 19 13 18 16Z" fill="rgba(76, 175, 80, 0.8)"/>
-              <!-- きゅうり -->
-              <ellipse cx="32" cy="25" rx="4" ry="6" fill="rgba(76, 175, 80, 0.4)" stroke="rgba(76, 175, 80, 0.6)" stroke-width="1"/>
-              <!-- パプリカ -->
-              <path d="M22 32 C20 28 22 24 26 26 C28 28 26 32 22 32Z" fill="rgba(255, 193, 7, 0.4)" stroke="rgba(255, 193, 7, 0.7)" stroke-width="1"/>
+          <div class="illust-circle">
+            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M26 40 C14 34 11 22 20 15 C29 8 42 14 38 27 C35 38 26 40 26 40Z"
+                fill="rgba(76,175,80,0.25)" stroke="rgba(56,142,60,0.7)" stroke-width="1.5"/>
+              <path d="M26 40 C25 32 22 24 20 15" stroke="rgba(56,142,60,0.5)" stroke-width="1" stroke-dasharray="2,2"/>
+              <circle cx="18" cy="26" r="6" fill="rgba(244,67,54,0.35)" stroke="rgba(211,47,47,0.7)" stroke-width="1.2"/>
+              <path d="M18 20 C17 17 19 16 18 20Z" fill="rgba(56,142,60,0.8)"/>
+              <path d="M28 34 C25 29 27 23 31 25 C34 27 32 34 28 34Z"
+                fill="rgba(255,193,7,0.35)" stroke="rgba(245,127,23,0.6)" stroke-width="1"/>
+              <ellipse cx="34" cy="22" rx="4" ry="5.5"
+                fill="rgba(76,175,80,0.3)" stroke="rgba(56,142,60,0.6)" stroke-width="1"/>
+              <ellipse cx="34" cy="22" rx="2" ry="3"
+                fill="rgba(76,175,80,0.1)" stroke="rgba(56,142,60,0.3)" stroke-width="0.7"/>
             </svg>
           </div>
-          <div class="item-text">
-            <div class="course-type">【 冷菜 】</div>
+          <div class="item-body">
+            <div class="course-label">【 冷 菜 】</div>
             <div class="dish-name">彩り夏野菜のサラダ</div>
-            <div class="dish-description">旬の恵みを柑橘香る和風ジュレで爽やかに</div>
+            <div class="dish-note">旬の恵みを和風ジュレで爽やかに</div>
           </div>
         </div>
 
-        <!-- 蛸とキュウリ -->
+        <!-- 2. 烏賊と胡瓜の酢和え -->
         <div class="menu-item">
-          <div class="item-illustration">
-            <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- 蛸の頭 -->
-              <ellipse cx="25" cy="20" rx="8" ry="6" fill="rgba(233, 30, 99, 0.3)" stroke="rgba(233, 30, 99, 0.6)" stroke-width="1.5"/>
-              <!-- 蛸の足 -->
-              <path d="M20 25 C15 28 12 32 15 35" stroke="rgba(233, 30, 99, 0.7)" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M30 25 C35 28 38 32 35 35" stroke="rgba(233, 30, 99, 0.7)" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M25 26 C25 30 23 34 25 37" stroke="rgba(233, 30, 99, 0.6)" stroke-width="2" stroke-linecap="round"/>
+          <div class="illust-circle">
+            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- 烏賊の胴体 -->
+              <path d="M26 10 C20 10 17 15 17 22 C17 29 20 33 26 33 C32 33 35 29 35 22 C35 15 32 10 26 10Z"
+                fill="rgba(224,224,240,0.5)" stroke="rgba(120,120,180,0.7)" stroke-width="1.5"/>
+              <!-- 目 -->
+              <circle cx="22" cy="20" r="2" fill="rgba(80,80,140,0.5)" stroke="rgba(80,80,140,0.7)" stroke-width="0.8"/>
+              <circle cx="30" cy="20" r="2" fill="rgba(80,80,140,0.5)" stroke="rgba(80,80,140,0.7)" stroke-width="0.8"/>
+              <!-- 耳ヒレ -->
+              <path d="M17 16 C13 14 12 18 15 21 C16 19 17 17 17 16Z"
+                fill="rgba(200,200,230,0.5)" stroke="rgba(120,120,180,0.6)" stroke-width="1"/>
+              <path d="M35 16 C39 14 40 18 37 21 C36 19 35 17 35 16Z"
+                fill="rgba(200,200,230,0.5)" stroke="rgba(120,120,180,0.6)" stroke-width="1"/>
+              <!-- 触手 -->
+              <path d="M21 33 C20 37 19 40 20 43" stroke="rgba(120,120,180,0.6)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M24 34 C24 38 23 41 24 44" stroke="rgba(120,120,180,0.6)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M28 34 C28 38 29 41 28 44" stroke="rgba(120,120,180,0.6)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M31 33 C32 37 33 40 32 43" stroke="rgba(120,120,180,0.6)" stroke-width="2" stroke-linecap="round"/>
               <!-- きゅうり輪切り -->
-              <circle cx="35" cy="30" r="5" fill="rgba(76, 175, 80, 0.3)" stroke="rgba(76, 175, 80, 0.6)" stroke-width="1"/>
-              <circle cx="35" cy="30" r="2.5" fill="rgba(76, 175, 80, 0.1)" stroke="rgba(76, 175, 80, 0.4)" stroke-width="0.8"/>
+              <circle cx="41" cy="24" r="5.5" fill="rgba(76,175,80,0.3)" stroke="rgba(56,142,60,0.6)" stroke-width="1"/>
+              <circle cx="41" cy="24" r="2.5" fill="rgba(76,175,80,0.1)" stroke="rgba(56,142,60,0.3)" stroke-width="0.7"/>
+              <!-- きゅうりの線 -->
+              <line x1="41" y1="18.5" x2="41" y2="29.5" stroke="rgba(56,142,60,0.3)" stroke-width="0.7"/>
+              <line x1="35.5" y1="24" x2="46.5" y2="24" stroke="rgba(56,142,60,0.3)" stroke-width="0.7"/>
             </svg>
           </div>
-          <div class="item-text">
-            <div class="course-type">【 酢の物 】</div>
-            <div class="dish-name">真蛸と蛇腹胡瓜の土佐酢和え</div>
-            <div class="dish-description">ぷりぷりの蛸と胡瓜を涼やかな土佐酢で</div>
+          <div class="item-body">
+            <div class="course-label">【 酢の物 】</div>
+            <div class="dish-name">烏賊と胡瓜の酢和え</div>
+            <div class="dish-note">やわらかな烏賊と胡瓜を涼やかな土佐酢で</div>
           </div>
         </div>
 
-        <!-- 鴨と山椒 -->
+        <!-- 3. 実山椒と合鴨のソテー -->
         <div class="menu-item">
-          <div class="item-illustration">
-            <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div class="illust-circle">
+            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- お皿 -->
+              <ellipse cx="26" cy="40" rx="18" ry="4"
+                fill="rgba(230,220,200,0.4)" stroke="rgba(180,160,120,0.5)" stroke-width="1"/>
               <!-- 鴨肉 -->
-              <ellipse cx="25" cy="28" rx="12" ry="6" fill="rgba(121, 85, 72, 0.4)" stroke="rgba(121, 85, 72, 0.7)" stroke-width="1.5"/>
-              <!-- 炙り目 -->
-              <path d="M15 25 C20 23 30 23 35 25" stroke="rgba(62, 39, 35, 0.8)" stroke-width="2" stroke-linecap="round"/>
-              <path d="M16 27 C21 25 29 25 34 27" stroke="rgba(62, 39, 35, 0.6)" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M12 33 C12 27 18 23 26 23 C34 23 40 27 40 33 C40 37 34 39 26 39 C18 39 12 37 12 33Z"
+                fill="rgba(139,90,60,0.45)" stroke="rgba(100,60,30,0.7)" stroke-width="1.5"/>
+              <!-- 焼き目 -->
+              <path d="M14 30 C20 28 32 28 38 30" stroke="rgba(60,30,10,0.7)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M14 33 C20 31 32 31 38 33" stroke="rgba(60,30,10,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- 山椒の枝 -->
+              <path d="M24 21 C23 16 26 12 26 12" stroke="rgba(56,142,60,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M23 18 C20 16 18 13 18 13" stroke="rgba(56,142,60,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+              <path d="M25 15 C22 13 21 10 21 10" stroke="rgba(56,142,60,0.5)" stroke-width="1" stroke-linecap="round"/>
               <!-- 山椒の実 -->
-              <circle cx="20" cy="18" r="2" fill="rgba(76, 175, 80, 0.6)" stroke="rgba(76, 175, 80, 0.8)" stroke-width="1"/>
-              <circle cx="28" cy="16" r="2" fill="rgba(76, 175, 80, 0.6)" stroke="rgba(76, 175, 80, 0.8)" stroke-width="1"/>
-              <circle cx="32" cy="19" r="1.5" fill="rgba(76, 175, 80, 0.5)" stroke="rgba(76, 175, 80, 0.7)" stroke-width="0.8"/>
+              <circle cx="18" cy="13" r="2.2" fill="rgba(100,180,60,0.8)" stroke="rgba(56,142,60,0.9)" stroke-width="0.8"/>
+              <circle cx="21" cy="10" r="2.2" fill="rgba(100,180,60,0.8)" stroke="rgba(56,142,60,0.9)" stroke-width="0.8"/>
+              <circle cx="26" cy="12" r="2.4" fill="rgba(100,180,60,0.8)" stroke="rgba(56,142,60,0.9)" stroke-width="0.8"/>
+              <!-- 湯気 -->
+              <path d="M20 23 C19 20 21 18 20 16" stroke="rgba(200,200,200,0.5)" stroke-width="1.2" stroke-linecap="round"/>
+              <path d="M26 22 C25 19 27 17 26 15" stroke="rgba(200,200,200,0.5)" stroke-width="1.2" stroke-linecap="round"/>
+              <path d="M32 23 C31 20 33 18 32 16" stroke="rgba(200,200,200,0.5)" stroke-width="1.2" stroke-linecap="round"/>
             </svg>
           </div>
-          <div class="item-text">
-            <div class="course-type">【 強肴 】</div>
-            <div class="dish-name">合鴨の炙り 有馬山椒添え</div>
-            <div class="dish-description">香ばしく焼き上げた鴨にピリリと香る山椒を</div>
+          <div class="item-body">
+            <div class="course-label">【 強 肴 】</div>
+            <div class="dish-name">実山椒と合鴨のソテー</div>
+            <div class="dish-note">香ばしく焼き上げた鴨にピリリと山椒の香り</div>
           </div>
         </div>
 
-        <!-- 鯛の塩釜焼き -->
+        <!-- 4. 鯛の塩釜焼き -->
         <div class="menu-item">
-          <div class="item-illustration">
-            <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div class="illust-circle">
+            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- 塩釜の土台 -->
+              <path d="M8 38 L8 43 C8 44.1 8.9 45 10 45 L42 45 C43.1 45 44 44.1 44 43 L44 38 Z"
+                fill="rgba(220,210,190,0.6)" stroke="rgba(180,160,120,0.6)" stroke-width="1"/>
               <!-- 塩釜 -->
-              <path d="M10 35 C10 25 15 18 25 18 C35 18 40 25 40 35 L40 38 C40 40 38 42 36 42 L14 42 C12 42 10 40 10 38 Z" fill="rgba(250, 250, 250, 0.4)" stroke="rgba(200, 200, 200, 0.8)" stroke-width="1.5"/>
+              <path d="M10 38 C10 26 16 16 26 16 C36 16 42 26 42 38 Z"
+                fill="rgba(245,240,225,0.7)" stroke="rgba(200,185,150,0.8)" stroke-width="1.5"/>
+              <!-- 塩のテクスチャ -->
+              <path d="M14 34 C18 32 24 31 30 32 C36 33 40 35 40 35"
+                stroke="rgba(200,185,150,0.5)" stroke-width="1" stroke-dasharray="2,3"/>
+              <path d="M12 37 C17 35 23 34 29 35 C35 36 40 37 42 37"
+                stroke="rgba(200,185,150,0.5)" stroke-width="1" stroke-dasharray="2,3"/>
               <!-- 鯛のシルエット -->
-              <ellipse cx="25" cy="32" rx="12" ry="4" fill="rgba(255, 152, 0, 0.3)" stroke="rgba(255, 152, 0, 0.5)" stroke-width="1"/>
-              <!-- 鯛の尾 -->
-              <path d="M35 32 C38 29 40 32 37 35 C40 35 38 38 35 32Z" fill="rgba(255, 152, 0, 0.4)" stroke="rgba(255, 152, 0, 0.6)" stroke-width="1"/>
+              <ellipse cx="26" cy="30" rx="11" ry="5"
+                fill="rgba(255,120,80,0.2)" stroke="rgba(220,80,40,0.35)" stroke-width="1"/>
+              <!-- 尾ひれ -->
+              <path d="M35 30 C39 26 41 30 38 34 C41 33 39 37 35 30Z"
+                fill="rgba(255,120,80,0.2)" stroke="rgba(220,80,40,0.3)" stroke-width="1"/>
+              <!-- 目 -->
+              <circle cx="19" cy="29" r="1.5" fill="rgba(100,60,40,0.3)" stroke="rgba(100,60,40,0.4)" stroke-width="0.5"/>
               <!-- 湯気 -->
-              <path d="M20 15 C19 12 21 10 20 8" stroke="rgba(200, 200, 200, 0.6)" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M25 14 C24 11 26 9 25 7" stroke="rgba(200, 200, 200, 0.6)" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M30 15 C29 12 31 10 30 8" stroke="rgba(200, 200, 200, 0.6)" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M18 14 C17 11 19 9 18 7" stroke="rgba(180,180,180,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M26 13 C25 10 27 8 26 6" stroke="rgba(180,180,180,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M34 14 C33 11 35 9 34 7" stroke="rgba(180,180,180,0.6)" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
           </div>
-          <div class="item-text">
-            <div class="course-type">【 焼物 】</div>
-            <div class="dish-name">天然真鯛の塩釜焼き</div>
-            <div class="dish-description">豪快に一尾まるごと 潮の香りをお楽しみください</div>
+          <div class="item-body">
+            <div class="course-label">【 焼 物 】</div>
+            <div class="dish-name">鯛の塩釜焼き</div>
+            <div class="dish-note">一尾まるごと 潮の香りとともに豪快に</div>
           </div>
         </div>
-      </div>
+
+        <!-- 5. 鯛の炊き込みごはん -->
+        <div class="menu-item">
+          <div class="illust-circle">
+            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- 土鍋の底 -->
+              <ellipse cx="26" cy="42" rx="18" ry="4"
+                fill="rgba(180,140,100,0.5)" stroke="rgba(140,100,60,0.7)" stroke-width="1"/>
+              <!-- 土鍋の胴体 -->
+              <path d="M10 28 L10 42 C10 42 16 46 26 46 C36 46 42 42 42 42 L42 28 Z"
+                fill="rgba(200,160,110,0.4)" stroke="rgba(150,110,70,0.7)" stroke-width="1.5"/>
+              <!-- 土鍋の上部楕円 -->
+              <ellipse cx="26" cy="28" rx="16" ry="5"
+                fill="rgba(210,170,120,0.5)" stroke="rgba(150,110,70,0.7)" stroke-width="1.5"/>
+              <!-- ごはん -->
+              <ellipse cx="26" cy="27" rx="13" ry="4"
+                fill="rgba(255,250,235,0.9)" stroke="rgba(210,190,150,0.6)" stroke-width="1"/>
+              <!-- ごはんのつぶつぶ -->
+              <circle cx="20" cy="27" r="1" fill="rgba(240,230,200,0.8)"/>
+              <circle cx="24" cy="26" r="1" fill="rgba(240,230,200,0.8)"/>
+              <circle cx="28" cy="27" r="1" fill="rgba(240,230,200,0.8)"/>
+              <circle cx="32" cy="26" r="1" fill="rgba(240,230,200,0.8)"/>
+              <circle cx="22" cy="28.5" r="1" fill="rgba(240,230,200,0.8)"/>
+              <circle cx="30" cy="28.5" r="1" fill="rgba(240,230,200,0.8)"/>
+              <!-- 鯛の身（ピンク） -->
+              <path d="M20 25 C22 22 30 22 32 25 C30 24 22 24 20 25Z"
+                fill="rgba(255,150,130,0.6)" stroke="rgba(220,100,80,0.5)" stroke-width="0.8"/>
+              <!-- 土鍋の耳 -->
+              <path d="M10 32 C7 31 6 34 8 35 C9 33 10 32 10 32Z"
+                fill="rgba(180,140,100,0.6)" stroke="rgba(140,100,60,0.7)" stroke-width="1"/>
+              <path d="M42 32 C45 31 46 34 44 35 C43 33 42 32 42 32Z"
+                fill="rgba(180,140,100,0.6)" stroke="rgba(140,100,60,0.7)" stroke-width="1"/>
+              <!-- 蓋のつまみ -->
+              <circle cx="26" cy="19" r="3"
+                fill="rgba(200,160,110,0.7)" stroke="rgba(150,110,70,0.8)" stroke-width="1"/>
+              <!-- 蓋 -->
+              <path d="M13 24 C13 19 18 16 26 16 C34 16 39 19 39 24"
+                fill="rgba(210,170,120,0.5)" stroke="rgba(150,110,70,0.7)" stroke-width="1.5"/>
+              <!-- 湯気 -->
+              <path d="M20 15 C19 12 21 10 20 8" stroke="rgba(200,200,200,0.6)" stroke-width="1.3" stroke-linecap="round"/>
+              <path d="M26 14 C25 11 27 9 26 7" stroke="rgba(200,200,200,0.6)" stroke-width="1.3" stroke-linecap="round"/>
+              <path d="M32 15 C31 12 33 10 32 8" stroke="rgba(200,200,200,0.6)" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="item-body">
+            <div class="course-label">【 食 事 】</div>
+            <div class="dish-name">鯛の炊き込みごはん</div>
+            <div class="dish-note">土鍋でふっくら炊き上げた鯛の旨みたっぷり</div>
+          </div>
+        </div>
+
+        <!-- 6. 焼き立てシフォンケーキ -->
+        <div class="menu-item">
+          <div class="illust-circle">
+            <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- ケーキ本体 -->
+              <path d="M10 34 C10 24 17 18 26 18 C35 18 42 24 42 34 L42 40 C42 42.2 40.2 44 38 44 L14 44 C11.8 44 10 42.2 10 40 Z"
+                fill="rgba(255,220,160,0.5)" stroke="rgba(210,160,80,0.7)" stroke-width="1.5"/>
+              <!-- 中心の穴 -->
+              <path d="M20 34 C20 28 22 24 26 24 C30 24 32 28 32 34 L32 40 C32 41.1 31.1 42 30 42 L22 42 C20.9 42 20 41.1 20 40 Z"
+                fill="rgba(255,245,220,0.9)" stroke="rgba(210,160,80,0.5)" stroke-width="1"/>
+              <!-- 上面 -->
+              <ellipse cx="26" cy="34" rx="16" ry="5"
+                fill="rgba(255,230,170,0.7)" stroke="rgba(210,160,80,0.7)" stroke-width="1.2"/>
+              <!-- 穴の上面 -->
+              <ellipse cx="26" cy="34" rx="6" ry="2.5"
+                fill="rgba(255,248,235,0.95)" stroke="rgba(210,160,80,0.4)" stroke-width="0.8"/>
+              <!-- クリーム -->
+              <path d="M14 32 C17 28 20 27 22 29 C24 27 26 25 28 27 C30 25 33 27 36 29 C38 27 40 29 40 32"
+                fill="rgba(255,255,255,0.75)" stroke="rgba(220,200,180,0.5)" stroke-width="0.8"/>
+              <!-- いちご -->
+              <path d="M23 27 C23 22 27 20 28 20 C29 20 33 22 33 27 C33 31 29 33 28 33 C27 33 23 31 23 27Z"
+                fill="rgba(244,67,54,0.65)" stroke="rgba(183,28,28,0.7)" stroke-width="1"/>
+              <!-- いちごのへた -->
+              <path d="M26 20 C25 18 27 17 28 20Z" fill="rgba(56,142,60,0.9)"/>
+              <path d="M30 20 C31 18 29 17 28 20Z" fill="rgba(56,142,60,0.9)"/>
+              <!-- いちごの模様 -->
+              <circle cx="26" cy="26" r="0.8" fill="rgba(255,200,200,0.6)"/>
+              <circle cx="29" cy="28" r="0.8" fill="rgba(255,200,200,0.6)"/>
+              <circle cx="27" cy="30" r="0.8" fill="rgba(255,200,200,0.6)"/>
+              <!-- ミント -->
+              <path d="M33 25 C36 22 38 20 37 18 C35 21 33 25 33 25Z"
+                fill="rgba(76,175,80,0.7)" stroke="rgba(56,142,60,0.6)" stroke-width="0.5"/>
+              <!-- 湯気 -->
+              <path d="M19 17 C18 14 20 12 19 10" stroke="rgba(210,180,140,0.5)" stroke-width="1.2" stroke-linecap="round"/>
+              <path d="M26 16 C25 13 27 11 26 9" stroke="rgba(210,180,140,0.5)" stroke-width="1.2" stroke-linecap="round"/>
+              <path d="M33 17 C32 14 34 12 33 10" stroke="rgba(210,180,140,0.5)" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="item-body">
+            <div class="course-label">【 甘 味 】</div>
+            <div class="dish-name">焼き立てシフォンケーキ</div>
+            <div class="dish-note">ふわりと香るやさしい甘さで締めくくりに</div>
+          </div>
+        </div>
+
+      </div><!-- /.menu-items -->
 
       <!-- フッター -->
       <div class="footer">
-        ◆ 本日はありがとうございます ◆<br>
-        <span style="font-size: 10px; margin-top: 5px; display: block;">※仕入れ状況により内容が変更になる場合がございます</span>
+        <div class="footer-deco">❧ ✦ ❧</div>
+        <div class="footer-text">本日はありがとうございます</div>
       </div>
-    </div>
-  </div>
+
+    </div><!-- /.menu-content -->
+  </div><!-- /.menu-wrapper -->
+
 </body>
 </html>
+
